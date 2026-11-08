@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#020a12">
+<title>J.A.R.V.I.S.</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Rajdhani:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--c:#29d8ff;--c2:#0a84ff;--glow:rgba(41,216,255,.55);}
+  body.combat{--c:#ff4b3a;--c2:#ff9a1f;--glow:rgba(255,75,58,.6);}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:radial-gradient(circle at 50% 30%,#06243a 0%,#020a12 65%);color:#d8f6ff;font-family:Rajdhani,sans-serif;display:flex;flex-direction:column;overflow:hidden}
+  body.combat{background:radial-gradient(circle at 50% 30%,#3a0a06 0%,#120302 65%)}
+  body::before{content:"";position:fixed;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px);pointer-events:none}
+  header{text-align:center;padding:14px 10px 0}
+  h1{font-family:Orbitron;font-size:22px;letter-spacing:6px;color:var(--c);text-shadow:0 0 12px var(--glow)}
+  .status{font-size:13px;letter-spacing:2px;opacity:.8;margin-top:2px}
+  .top{position:absolute;top:12px;background:none;border:1px solid var(--c);color:var(--c);border-radius:8px;padding:4px 8px;font:600 12px Orbitron;cursor:pointer;z-index:2}
+  .hud{position:relative;width:190px;height:190px;margin:12px auto 4px;flex-shrink:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .ring{position:absolute;inset:0;border-radius:50%;border:2px solid var(--c);box-shadow:0 0 18px var(--glow),inset 0 0 18px var(--glow)}
+  .r1{border-style:dashed;animation:spin 18s linear infinite}
+  .r2{inset:22px;border-width:3px;border-color:var(--c) transparent var(--c) transparent;animation:spin 6s linear infinite reverse}
+  .r3{inset:44px;border-width:1px;border-style:dotted;animation:spin 10s linear infinite}
+  .core{position:absolute;inset:64px;border-radius:50%;background:radial-gradient(circle,#fff 0%,var(--c) 35%,var(--c2) 70%,transparent 72%);box-shadow:0 0 40px var(--glow);animation:pulse 2.4s ease-in-out infinite}
+  .hud.talking .core{animation:pulse .35s ease-in-out infinite}
+  .hud.thinking .r2{animation-duration:1.2s}
+  .hud.listening .ring{border-color:#fff}
+  .hud.listening .core{animation:pulse .8s ease-in-out infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes pulse{50%{transform:scale(.86);opacity:.8}}
+  .hint{text-align:center;font-size:13px;opacity:.6}
+  #log{flex:1;overflow-y:auto;padding:8px 14px;display:flex;flex-direction:column;gap:8px}
+  .msg{max-width:88%;padding:9px 12px;border-radius:12px;font-size:17px;line-height:1.3;white-space:pre-wrap;word-wrap:break-word}
+  .me{align-self:flex-end;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15)}
+  .jv{align-self:flex-start;background:rgba(41,216,255,.08);border:1px solid var(--c)}
+  body.combat .jv{background:rgba(255,75,58,.1)}
+  .jv b{font-family:Orbitron;font-size:11px;color:var(--c);letter-spacing:2px;display:block;margin-bottom:2px}
+  .jv a{display:inline-block;margin-top:6px;padding:6px 12px;border:1px solid var(--c);border-radius:8px;color:var(--c);text-decoration:none;font-weight:600}
+  .chips{display:flex;gap:6px;overflow-x:auto;padding:6px 12px;flex-shrink:0}
+  .chip{flex-shrink:0;background:transparent;border:1px solid var(--c);color:var(--c);border-radius:20px;padding:6px 12px;font:600 14px Rajdhani;cursor:pointer}
+  form.bar{display:flex;gap:8px;padding:8px 12px calc(12px + env(safe-area-inset-bottom));flex-shrink:0}
+  .bar input{flex:1;min-width:0;background:rgba(0,0,0,.4);border:1px solid var(--c);border-radius:12px;color:#fff;padding:12px;font:17px Rajdhani;outline:none}
+  .btn{background:var(--c);color:#001018;border:none;border-radius:12px;padding:0 14px;font:700 16px Orbitron;cursor:pointer}
+  .btn.ghost{background:transparent;color:var(--c);border:1px solid var(--c)}
+  #cfg{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;padding:20px;z-index:5}
+  #cfg.open{display:flex}
+  .panel{background:#071826;border:1px solid var(--c);border-radius:14px;padding:18px;width:100%;max-width:420px;box-shadow:0 0 30px var(--glow)}
+  .panel h2{font-family:Orbitron;font-size:16px;color:var(--c);letter-spacing:2px;margin-bottom:10px}
+  .panel label{display:block;font-size:14px;margin:10px 0 4px;opacity:.85}
+  .panel input{width:100%;background:rgba(0,0,0,.4);border:1px solid var(--c);border-radius:10px;color:#fff;padding:10px;font:16px Rajdhani;outline:none}
+  .panel p{font-size:13px;opacity:.65;margin-top:6px;line-height:1.3}
+  .row{display:flex;gap:8px;margin-top:14px}
+  .row .btn{flex:1;padding:12px}
+  .check{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:15px}
+  .check input{width:auto}
+</style>
+</head>
+<body>
+<button class="top" id="cfgBtn" style="left:12px">⚙ CONFIG</button>
+<button class="top" id="voiceBtn" style="right:12px">VOZ: ON</button>
+<header>
+  <h1>J.A.R.V.I.S.</h1>
+  <div class="status" id="status">SISTEMAS ONLINE</div>
+</header>
+<div class="hud" id="hud" title="Toque para falar"><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="core"></div></div>
+<div class="hint" id="hint">Toque no reator para falar</div>
+<div id="log"></div>
+<div class="chips">
+  <button class="chip" data-c="bom dia">☀️ Bom dia</button>
+  <button class="chip" data-c="modo combate">⚔️ Modo combate</button>
+  <button class="chip" data-c="que horas são">🕒 Horas</button>
+  <button class="chip" data-c="bateria">🔋 Bateria</button>
+  <button class="chip" data-c="me conta uma piada">😄 Piada</button>
+  <button class="chip" data-c="modo normal">🔵 Normal</button>
+</div>
+<form class="bar" id="f">
+  <input id="inp" autocomplete="off" placeholder="Fale ou escreva...">
+  <button class="btn ghost" type="button" id="micBtn">🎤</button>
+  <button class="btn" type="submit">▶</button>
+</form>
+
+<div id="cfg">
+  <div class="panel">
+    <h2>CONFIGURAÇÕES</h2>
+    <label for="keyIn">Chave da API do Gemini</label>
+    <input id="keyIn" type="password" placeholder="AIza..." autocomplete="off">
+    <p>Fica guardada só neste celular. Nunca mostre essa chave pra ninguém.</p>
+    <label for="modelIn">Modelo (pode deixar como está)</label>
+    <input id="modelIn" placeholder="gemini-flash-latest">
+    <label class="check"><input type="checkbox" id="wakeIn"> Escuta contínua: chamar dizendo "Jarvis..."</label>
+    <p>Na escuta contínua ele fica ouvindo enquanto o app está aberto. Gasta mais bateria e o celular pode dar uns "bips".</p>
+    <div class="row"><button class="btn ghost" id="cfgCancel">FECHAR</button><button class="btn" id="cfgSave">SALVAR</button></div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const log=$('log'),inp=$('inp'),hud=$('hud'),statusEl=$('status'),hint=$('hint');
+const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:v;}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,v);}catch(e){}}};
+let voiceOn=store.get('jv_voice','1')==='1',history=[],busy=false;
+$('voiceBtn').textContent='VOZ: '+(voiceOn?'ON':'OFF');
+
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
+
+/* ---------- interface ---------- */
+function add(text,who,link){
+  const d=document.createElement('div');d.className='msg '+who;
+  if(who==='jv'){const b=document.createElement('b');b.textContent='JARVIS';d.appendChild(b);}
+  const s=document.createElement('span');s.textContent=text;d.appendChild(s);
+  if(link){const a=document.createElement('a');a.href=link.url;a.target='_blank';a.rel='noopener';a.textContent=link.label;d.appendChild(document.createElement('br'));d.appendChild(a);}
+  log.appendChild(d);log.scrollTop=log.scrollHeight;return s;
+}
+const baseStatus=()=>document.body.classList.contains('combat')?'⚠ MODO COMBATE ATIVO':'SISTEMAS ONLINE';
+function setStatus(t){statusEl.textContent=t||baseStatus();}
+
+/* ---------- voz (fala) ---------- */
+function pickVoice(){const v=speechSynthesis.getVoices();return v.find(x=>/pt.BR/i.test(x.lang)&&/google/i.test(x.name))||v.find(x=>/pt/i.test(x.lang));}
+function speak(t){
+  return new Promise(res=>{
+    if(!voiceOn||!('speechSynthesis'in window))return res();
+    try{
+      speechSynthesis.cancel();pauseEars();
+      const u=new SpeechSynthesisUtterance(t.replace(/[*#_`]/g,''));u.lang='pt-BR';u.pitch=0.75;u.rate=0.95;
+      const v=pickVoice();if(v)u.voice=v;
+      u.onstart=()=>hud.classList.add('talking');
+      u.onend=u.onerror=()=>{hud.classList.remove('talking');resumeEars();res();};
+      speechSynthesis.speak(u);
+    }catch(e){resumeEars();res();}
+  });
+}
+function say(t,link){add(t,'jv',link);return speak(t);}
+try{speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=()=>{};}catch(e){}
+
+/* ---------- ouvido (microfone) ---------- */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let rec=null,listening=false,wakeMode=store.get('jv_wake','0')==='1',paused=false,wantWake=false;
+function makeRec(continuous){
+  const r=new SR();r.lang='pt-BR';r.interimResults=true;r.continuous=continuous;r.maxAlternatives=1;return r;
+}
+function listenOnce(){
+  if(!SR){say('Este navegador não deixa eu usar o microfone, senhor. Use o Chrome.');return;}
+  if(listening){try{rec.stop();}catch(e){}return;}
+  try{speechSynthesis.cancel();}catch(e){}
+  rec=makeRec(false);let finalText='';
+  rec.onstart=()=>{listening=true;hud.classList.add('listening');setStatus('OUVINDO...');hint.textContent='Pode falar, senhor...';};
+  rec.onresult=e=>{let t='';for(const r of e.results){t+=r[0].transcript;if(r.isFinal)finalText=t;}inp.value=t;};
+  rec.onerror=e=>{if(e.error==='not-allowed'||e.error==='service-not-allowed')say('Preciso de permissão para usar o microfone, senhor. Libere nas configurações do Chrome.');};
+  rec.onend=()=>{listening=false;hud.classList.remove('listening');setStatus();hint.textContent=wakeMode?'Diga "Jarvis..." ou toque no reator':'Toque no reator para falar';
+    const t=(finalText||inp.value).trim();inp.value='';if(t)handle(t);else if(wakeMode)startWake();};
+  try{stopWake();rec.start();}catch(e){}
+}
+/* escuta contínua com palavra "Jarvis" */
+let wakeRec=null;
+function startWake(){
+  if(!SR||!wakeMode||paused||listening||busy)return;
+  wantWake=true;
+  try{wakeRec=makeRec(true);}catch(e){return;}
+  wakeRec.onresult=e=>{
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const r=e.results[i];if(!r.isFinal)continue;
+      const t=r[0].transcript.trim();const m=t.match(/jarvis[\s,]*(.*)/i);
+      if(m){stopWake();if(m[1].trim())handle(m[1].trim());else{speak('Pois não, senhor?').then(listenOnce);}return;}
+    }
+  };
+  wakeRec.onend=()=>{if(wantWake&&!paused&&!listening&&!busy)setTimeout(startWake,300);};
+  wakeRec.onerror=e=>{if(e.error==='not-allowed'){wakeMode=false;store.set('jv_wake','0');}};
+  try{wakeRec.start();hint.textContent='Diga "Jarvis..." ou toque no reator';}catch(e){}
+}
+function stopWake(){wantWake=false;if(wakeRec){try{wakeRec.abort();}catch(e){}wakeRec=null;}}
+function pauseEars(){paused=true;stopWake();}
+function resumeEars(){paused=false;if(wakeMode&&!busy)setTimeout(startWake,400);}
+
+/* ---------- comandos locais ---------- */
+const piadas=["Por que o Homem de Ferro não usa celular? Porque ele já tem um assistente melhor que todos: eu.","Senhor, calculei 14 milhões de possibilidades. Em nenhuma delas a sua última piada teve graça.","Por que o robô foi ao médico? Porque estava com um vírus.","O que o Thor disse ao perder o martelo? Nada. Ficou sem palavras... e sem Mjolnir."];
+const sites={youtube:"https://www.youtube.com",google:"https://www.google.com",spotify:"https://open.spotify.com",instagram:"https://www.instagram.com",tiktok:"https://www.tiktok.com",whatsapp:"https://wa.me",netflix:"https://www.netflix.com"};
+async function local(c){
+  const t=c.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/^jarvis[, ]*/,'');
+  const now=new Date(),h=now.getHours(),mi=now.getMinutes();
+  if(/\b(que horas|hora[s]? (e|sao)|horas)\b/.test(t)&&t.length<30){await say(`São ${h} horas e ${mi} minutos, senhor.`);return true;}
+  if(/(que dia|data de hoje|dia e hoje)/.test(t)){await say(`Hoje é ${now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}, senhor.`);return true;}
+  if(/^(bom dia|boa tarde|boa noite)/.test(t)){const s=h<12?'Bom dia':h<18?'Boa tarde':'Boa noite';await say(`${s}, senhor. São ${h} horas e ${mi} minutos. Todos os sistemas operando normalmente. Em que posso ajudar?`);return true;}
+  if(/modo combate|protocolo de combate/.test(t)){document.body.classList.add('combat');setStatus();try{navigator.vibrate&&navigator.vibrate([200,100,200,100,400]);}catch(e){}await say('Modo combate ativado. Armadura carregada, repulsores prontos. Boa sorte, senhor.');return true;}
+  if(/modo normal|desativar combate/.test(t)){document.body.classList.remove('combat');setStatus();await say('Voltando ao modo normal, senhor. Todos os sistemas estáveis.');return true;}
+  if(/^(bateria|como esta a bateria|nivel da bateria)/.test(t)){try{const b=await navigator.getBattery();const p=Math.round(b.level*100);await say(`A bateria está em ${p} por cento${b.charging?', carregando':''}. ${p<20?'Recomendo procurar uma tomada, senhor.':'Energia suficiente, senhor.'}`);}catch(e){await say('Não consigo ler a bateria, senhor.');}return true;}
+  if(/piada/.test(t)){await say(piadas[Math.floor(Math.random()*piadas.length)]);return true;}
+  const m=t.match(/^(abr[ae]|abrir)\s+(o\s+|a\s+)?(\w+)/);
+  if(m&&sites[m[3]]){await say(`Abrindo ${m[3]}, senhor.`,{url:sites[m[3]],label:'▶ Abrir '+m[3]});try{location.href=sites[m[3]];}catch(e){}return true;}
+  if(/^(pesquis|procur)/.test(t)){const q=c.replace(/^(jarvis[, ]*)?\S+\s+(sobre\s+|por\s+)?/i,'');const url='https://www.google.com/search?q='+encodeURIComponent(q);await say(`Pesquisando ${q}, senhor.`,{url,label:'🔎 Ver resultados'});return true;}
+  if(/^(limpar|apagar) (conversa|historico|tela)/.test(t)){log.innerHTML='';history=[];await say('Memória da conversa apagada, senhor.');return true;}
+  return false;
+}
+
+/* ---------- cérebro (Gemini) ---------- */
+const SYS=`Você é J.A.R.V.I.S., o assistente de inteligência artificial do Homem de Ferro, agora vivendo no celular do usuário. Fale sempre em português do Brasil e chame o usuário de "senhor". Seja educado, elegante, levemente sarcástico e com humor britânico, como no filme. Respostas CURTAS (1 a 3 frases), porque serão lidas em voz alta. Não use markdown, emojis nem listas. Se pedirem algo que você não pode fazer no celular (ligar lanterna, mandar mensagem, controlar a casa), diga com elegância que esse sistema ainda não foi instalado. Data e hora atuais: ${new Date().toLocaleString('pt-BR')}.`;
+async function gemini(model,key){
+  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{
+    method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},
+    body:JSON.stringify({systemInstruction:{parts:[{text:SYS}]},contents:history.map(m=>({role:m.role,parts:[{text:m.text}]}))})
+  });
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){const err=new Error(j.error?.message||('HTTP '+r.status));err.status=r.status;throw err;}
+  const text=(j.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('').trim();
+  if(!text)throw new Error('Resposta vazia');
+  return text;
+}
+async function ai(c){
+  const key=store.get('jv_key','');
+  if(!key){await say('Meu núcleo de inteligência ainda não foi instalado, senhor. Toque em CONFIG e coloque a chave do Gemini.');return;}
+  history.push({role:'user',text:c});history=history.slice(-14);
+  hud.classList.add('thinking');setStatus('PROCESSANDO...');
+  const span=add('...','jv');
+  let model=store.get('jv_model','')||'gemini-flash-latest';
+  try{
+    let text;
+    try{text=await gemini(model,key);}
+    catch(e){if(e.status===404&&model!=='gemini-2.5-flash'){text=await gemini('gemini-2.5-flash',key);}else throw e;}
+    span.textContent=text;log.scrollTop=log.scrollHeight;history.push({role:'model',text});
+    hud.classList.remove('thinking');setStatus();await speak(text);
+  }catch(e){
+    history.pop();
+    const msg=e.status===429?'Atingi o limite de uso por agora, senhor. Tente daqui a pouco.':(e.status===400||e.status===403)?'A chave da API parece inválida, senhor. Confira em CONFIG.':!navigator.onLine?'Estou sem conexão com a internet, senhor.':'Houve uma falha nos meus sistemas, senhor. Tente de novo.';
+    span.textContent=msg;hud.classList.remove('thinking');setStatus();await speak(msg);
+  }
+}
+
+async function handle(c){
+  c=(c||'').trim();if(!c||busy)return;busy=true;stopWake();
+  add(c,'me');
+  try{if(!(await local(c)))await ai(c);}finally{busy=false;hud.classList.remove('thinking');setStatus();if(wakeMode&&!paused)startWake();}
+}
+
+/* ---------- botões ---------- */
+$('f').addEventListener('submit',e=>{e.preventDefault();const v=inp.value;inp.value='';handle(v);});
+document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>handle(b.dataset.c)));
+hud.addEventListener('click',listenOnce);
+$('micBtn').addEventListener('click',listenOnce);
+$('voiceBtn').addEventListener('click',e=>{voiceOn=!voiceOn;store.set('jv_voice',voiceOn?'1':'0');e.target.textContent='VOZ: '+(voiceOn?'ON':'OFF');if(!voiceOn)try{speechSynthesis.cancel();}catch(x){}});
+function openCfg(){$('keyIn').value=store.get('jv_key','');$('modelIn').value=store.get('jv_model','');$('wakeIn').checked=wakeMode;$('cfg').classList.add('open');}
+$('cfgBtn').addEventListener('click',openCfg);
+$('cfgCancel').addEventListener('click',()=>$('cfg').classList.remove('open'));
+$('cfgSave').addEventListener('click',()=>{
+  store.set('jv_key',$('keyIn').value.trim());store.set('jv_model',$('modelIn').value.trim());
+  wakeMode=$('wakeIn').checked;store.set('jv_wake',wakeMode?'1':'0');
+  $('cfg').classList.remove('open');
+  if(wakeMode)startWake();else{stopWake();hint.textContent='Toque no reator para falar';}
+  say('Configurações salvas, senhor.');
+});
+
+/* ---------- início ---------- */
+if(!SR)hint.textContent='Microfone indisponível neste navegador';
+add(store.get('jv_key','')?'Olá, senhor. J.A.R.V.I.S. online. Toque no reator para falar comigo.':'Olá, senhor. Para ativar meu cérebro, toque em CONFIG e coloque sua chave do Gemini.','jv');
+if(wakeMode)startWake();
+</script>
+</body>
+</html>
