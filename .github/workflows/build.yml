@@ -1,0 +1,929 @@
+# Receita do app Android do J.A.R.V.I.S.
+# O GitHub monta o APK sozinho sempre que este arquivo muda.
+name: Construir Jarvis APK
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/build.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Instalar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Instalar Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Criar o projeto Android
+        run: |
+          mkdir -p jarvis/app/src/main/java/com/kirito/jarvis jarvis/app/src/main/res/drawable
+          cd jarvis
+          cat > settings.gradle <<'JARVIS_EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "Jarvis"
+          include ':app'
+          JARVIS_EOF
+          cat > build.gradle <<'JARVIS_EOF'
+          plugins {
+              id 'com.android.application' version '8.5.2' apply false
+          }
+          JARVIS_EOF
+          cat > gradle.properties <<'JARVIS_EOF'
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          android.useAndroidX=true
+          JARVIS_EOF
+          cat > app/build.gradle <<'JARVIS_EOF'
+          plugins {
+              id 'com.android.application'
+          }
+
+          android {
+              namespace 'com.kirito.jarvis'
+              compileSdk 34
+
+              defaultConfig {
+                  applicationId 'com.kirito.jarvis'
+                  minSdk 26
+                  targetSdk 34
+                  versionCode 1
+                  versionName '1.0'
+              }
+
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                  }
+              }
+
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+
+              lint {
+                  abortOnError false
+                  checkReleaseBuilds false
+              }
+          }
+          JARVIS_EOF
+          cat > app/src/main/AndroidManifest.xml <<'JARVIS_EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+              <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.RECORD_AUDIO" />
+              <uses-permission android:name="android.permission.VIBRATE" />
+              <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+              <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+              <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+              <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+              <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+              <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
+              <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+              <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+              <queries>
+                  <intent>
+                      <action android:name="android.intent.action.MAIN" />
+                      <category android:name="android.intent.category.LAUNCHER" />
+                  </intent>
+                  <intent>
+                      <action android:name="android.speech.RecognitionService" />
+                  </intent>
+                  <intent>
+                      <action android:name="android.intent.action.TTS_SERVICE" />
+                  </intent>
+                  <intent>
+                      <action android:name="android.intent.action.VIEW" />
+                      <data android:scheme="https" />
+                  </intent>
+                  <intent>
+                      <action android:name="android.intent.action.DIAL" />
+                  </intent>
+              </queries>
+
+              <application
+                  android:label="Jarvis"
+                  android:icon="@drawable/ic_jarvis"
+                  android:roundIcon="@drawable/ic_jarvis"
+                  android:theme="@android:style/Theme.Material.NoActionBar">
+
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true"
+                      android:launchMode="singleTask"
+                      android:configChanges="orientation|screenSize|keyboardHidden|keyboard|screenLayout|uiMode"
+                      android:windowSoftInputMode="adjustResize">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                      <intent-filter>
+                          <action android:name="android.intent.action.ASSIST" />
+                          <category android:name="android.intent.category.DEFAULT" />
+                      </intent-filter>
+                      <intent-filter>
+                          <action android:name="android.intent.action.VOICE_COMMAND" />
+                          <category android:name="android.intent.category.DEFAULT" />
+                      </intent-filter>
+                  </activity>
+
+                  <service
+                      android:name=".WakeService"
+                      android:exported="false"
+                      android:foregroundServiceType="microphone" />
+
+                  <receiver
+                      android:name=".AlarmReceiver"
+                      android:exported="false" />
+              </application>
+          </manifest>
+          JARVIS_EOF
+          cat > app/src/main/res/drawable/ic_jarvis.xml <<'JARVIS_EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+              <path android:fillColor="#020A12" android:pathData="M0,0h108v108h-108z" />
+              <path android:strokeColor="#29D8FF" android:strokeWidth="4"
+                  android:pathData="M54,20 A34,34 0 1,1 53.99,20 Z" />
+              <path android:strokeColor="#1A9FCC" android:strokeWidth="3"
+                  android:pathData="M54,31 A23,23 0 1,1 53.99,31 Z" />
+              <path android:fillColor="#29D8FF"
+                  android:pathData="M54,40 A14,14 0 1,1 53.99,40 Z" />
+              <path android:fillColor="#FFFFFF"
+                  android:pathData="M54,47 A7,7 0 1,1 53.99,47 Z" />
+          </vector>
+          JARVIS_EOF
+          cat > app/src/main/java/com/kirito/jarvis/MainActivity.java <<'JARVIS_EOF'
+          package com.kirito.jarvis;
+
+          import android.Manifest;
+          import android.app.Activity;
+          import android.app.AlarmManager;
+          import android.app.PendingIntent;
+          import android.content.Intent;
+          import android.content.pm.PackageManager;
+          import android.content.pm.ResolveInfo;
+          import android.hardware.camera2.CameraCharacteristics;
+          import android.hardware.camera2.CameraManager;
+          import android.net.Uri;
+          import android.os.Build;
+          import android.os.Bundle;
+          import android.os.Handler;
+          import android.os.Looper;
+          import android.os.VibrationEffect;
+          import android.os.Vibrator;
+          import android.provider.Settings;
+          import android.speech.RecognitionListener;
+          import android.speech.RecognizerIntent;
+          import android.speech.SpeechRecognizer;
+          import android.speech.tts.TextToSpeech;
+          import android.speech.tts.UtteranceProgressListener;
+          import android.webkit.GeolocationPermissions;
+          import android.webkit.JavascriptInterface;
+          import android.webkit.WebChromeClient;
+          import android.webkit.WebResourceError;
+          import android.webkit.WebResourceRequest;
+          import android.webkit.WebSettings;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+
+          import org.json.JSONArray;
+          import org.json.JSONObject;
+
+          import java.text.Normalizer;
+          import java.util.ArrayList;
+          import java.util.List;
+          import java.util.Locale;
+
+          public class MainActivity extends Activity {
+
+              static final String SITE = "https://kirito1203.github.io/JARVIS/";
+              static final String HOST = "kirito1203.github.io";
+              static final int REQ_MIC = 1, REQ_NOTIF = 2, REQ_LOC = 3, REQ_WAKE = 4;
+
+              static MainActivity current;
+
+              WebView web;
+              TextToSpeech tts;
+              boolean ttsReady = false;
+              SpeechRecognizer recognizer;
+              String pendingCommand = "";
+              boolean listenAfterPermission = false;
+              final Handler ui = new Handler(Looper.getMainLooper());
+
+              static final String OFFLINE_HTML = "<html><body style='background:#020a12;color:#29d8ff;font-family:sans-serif;text-align:center;padding-top:40%'>"
+                      + "<h2>J.A.R.V.I.S.</h2><p>Sem conexão com a internet, senhor.</p>"
+                      + "<p><a style='color:#29d8ff' href='" + SITE + "'>Tentar de novo</a></p></body></html>";
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  current = this;
+                  getWindow().setStatusBarColor(0xFF020A12);
+                  getWindow().setNavigationBarColor(0xFF020A12);
+
+                  web = new WebView(this);
+                  web.setBackgroundColor(0xFF020A12);
+                  setContentView(web);
+
+                  WebSettings s = web.getSettings();
+                  s.setJavaScriptEnabled(true);
+                  s.setDomStorageEnabled(true);
+                  s.setMediaPlaybackRequiresUserGesture(false);
+                  s.setGeolocationEnabled(true);
+
+                  web.addJavascriptInterface(new Bridge(), "Android");
+
+                  web.setWebViewClient(new WebViewClient() {
+                      @Override
+                      public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                          Uri u = request.getUrl();
+                          if (HOST.equals(u.getHost())) return false;
+                          openExternal(u.toString());
+                          return true;
+                      }
+
+                      @Override
+                      public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                          if (request.isForMainFrame()) {
+                              view.loadDataWithBaseURL(SITE, OFFLINE_HTML, "text/html", "utf-8", null);
+                          }
+                      }
+                  });
+
+                  web.setWebChromeClient(new WebChromeClient() {
+                      @Override
+                      public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
+                          if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                              requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, REQ_LOC);
+                          }
+                          callback.invoke(origin, true, false);
+                      }
+                  });
+
+                  tts = new TextToSpeech(this, status -> {
+                      if (status == TextToSpeech.SUCCESS) {
+                          tts.setLanguage(new Locale("pt", "BR"));
+                          tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                              @Override
+                              public void onStart(String utteranceId) { }
+
+                              @Override
+                              public void onDone(String utteranceId) { speakFinished(); }
+
+                              @Override
+                              public void onError(String utteranceId) { speakFinished(); }
+
+                              @Override
+                              public void onStop(String utteranceId, boolean interrupted) { speakFinished(); }
+                          });
+                          ttsReady = true;
+                      }
+                  });
+
+                  if (Build.VERSION.SDK_INT >= 33
+                          && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                      requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQ_NOTIF);
+                  }
+
+                  handleIntent(getIntent());
+                  web.loadUrl(SITE);
+              }
+
+              void speakFinished() {
+                  js("jvNative.onSpeakDone()");
+                  WakeService.resumeAll();
+              }
+
+              @Override
+              protected void onNewIntent(Intent intent) {
+                  super.onNewIntent(intent);
+                  setIntent(intent);
+                  handleIntent(intent);
+                  if (!pendingCommand.isEmpty()) {
+                      String c = pendingCommand;
+                      pendingCommand = "";
+                      js("jvNative.onCommand(" + JSONObject.quote(c) + ")");
+                  }
+              }
+
+              void handleIntent(Intent i) {
+                  if (i == null) return;
+                  String a = i.getAction();
+                  if (i.hasExtra("cmd")) {
+                      String c = i.getStringExtra("cmd");
+                      pendingCommand = c == null ? "" : c;
+                      i.removeExtra("cmd");
+                  } else if (Intent.ACTION_ASSIST.equals(a) || "android.intent.action.VOICE_COMMAND".equals(a)) {
+                      pendingCommand = "__WAKE__";
+                  }
+              }
+
+              void js(String code) {
+                  ui.post(() -> {
+                      if (web != null) web.evaluateJavascript("try{" + code + "}catch(e){}", null);
+                  });
+              }
+
+              void openExternal(String url) {
+                  try {
+                      Intent it;
+                      if (url.startsWith("intent:")) {
+                          it = Intent.parseUri(url, Intent.URI_INTENT_SCHEME);
+                      } else {
+                          it = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                      }
+                      it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                      startActivity(it);
+                  } catch (Exception e) {
+                      js("jvNative.onToast(" + JSONObject.quote("Não consegui abrir isso, senhor.") + ")");
+                  }
+              }
+
+              @Override
+              public void onBackPressed() {
+                  if (web != null && web.canGoBack()) web.goBack();
+                  else super.onBackPressed();
+              }
+
+              @Override
+              protected void onDestroy() {
+                  if (current == this) current = null;
+                  if (tts != null) tts.shutdown();
+                  if (recognizer != null) recognizer.destroy();
+                  super.onDestroy();
+              }
+
+              @Override
+              public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+                  super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+                  boolean ok = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+                  if (requestCode == REQ_MIC) {
+                      if (ok && listenAfterPermission) startListening();
+                      else if (!ok) js("jvNative.onListenError('perm')");
+                      listenAfterPermission = false;
+                  } else if (requestCode == REQ_WAKE) {
+                      if (ok) startWakeService();
+                      else js("jvNative.onListenError('perm')");
+                  }
+              }
+
+              /* ---------------- microfone ---------------- */
+              void startListening() {
+                  if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                      listenAfterPermission = true;
+                      requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQ_MIC);
+                      return;
+                  }
+                  if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+                      js("jvNative.onListenError('unavailable')");
+                      return;
+                  }
+                  WakeService.pauseNow();
+                  if (tts != null) tts.stop();
+                  if (recognizer != null) recognizer.destroy();
+                  recognizer = SpeechRecognizer.createSpeechRecognizer(this);
+                  recognizer.setRecognitionListener(new RecognitionListener() {
+                      @Override public void onReadyForSpeech(Bundle params) { js("jvNative.onListenStart()"); }
+                      @Override public void onBeginningOfSpeech() { }
+                      @Override public void onRmsChanged(float rmsdB) { }
+                      @Override public void onBufferReceived(byte[] buffer) { }
+                      @Override public void onEndOfSpeech() { }
+
+                      @Override
+                      public void onError(int error) {
+                          js("jvNative.onListenEnd('')");
+                          WakeService.resumeAll();
+                      }
+
+                      @Override
+                      public void onResults(Bundle results) {
+                          js("jvNative.onListenEnd(" + JSONObject.quote(first(results)) + ")");
+                          WakeService.resumeAll();
+                      }
+
+                      @Override
+                      public void onPartialResults(Bundle partialResults) {
+                          js("jvNative.onPartial(" + JSONObject.quote(first(partialResults)) + ")");
+                      }
+
+                      @Override public void onEvent(int eventType, Bundle params) { }
+                  });
+                  Intent it = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                  it.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+                  it.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "pt-BR");
+                  it.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+                  recognizer.startListening(it);
+              }
+
+              static String first(Bundle b) {
+                  if (b == null) return "";
+                  ArrayList<String> l = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                  return (l != null && !l.isEmpty() && l.get(0) != null) ? l.get(0) : "";
+              }
+
+              void startWakeService() {
+                  Intent s = new Intent(this, WakeService.class);
+                  startForegroundService(s);
+              }
+
+              /* ---------------- apps ---------------- */
+              static String norm(String s) {
+                  if (s == null) return "";
+                  return Normalizer.normalize(s.toLowerCase(Locale.ROOT), Normalizer.Form.NFD)
+                          .replaceAll("\\p{M}", "").replaceAll("[^a-z0-9 ]", " ").replaceAll("\\s+", " ").trim();
+              }
+
+              List<ResolveInfo> launchables() {
+                  Intent m = new Intent(Intent.ACTION_MAIN);
+                  m.addCategory(Intent.CATEGORY_LAUNCHER);
+                  return getPackageManager().queryIntentActivities(m, 0);
+              }
+
+              String openAppByName(String name) {
+                  String q = norm(name);
+                  if (q.isEmpty()) return "";
+                  PackageManager pm = getPackageManager();
+                  ResolveInfo best = null;
+                  int bestScore = 0;
+                  for (ResolveInfo ri : launchables()) {
+                      String label = norm(ri.loadLabel(pm).toString());
+                      String pkg = ri.activityInfo.packageName.toLowerCase(Locale.ROOT);
+                      int sc = 0;
+                      if (label.equals(q)) sc = 4;
+                      else if (label.startsWith(q) || q.startsWith(label)) sc = 3;
+                      else if (label.length() > 2 && (label.contains(q) || q.contains(label))) sc = 2;
+                      else if (pkg.contains(q.replace(" ", ""))) sc = 1;
+                      if (sc > bestScore) {
+                          best = ri;
+                          bestScore = sc;
+                      }
+                  }
+                  if (best == null) return "";
+                  Intent launch = pm.getLaunchIntentForPackage(best.activityInfo.packageName);
+                  if (launch == null) return "";
+                  launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                  startActivity(launch);
+                  return best.loadLabel(pm).toString();
+              }
+
+              /* ---------------- ponte JavaScript ---------------- */
+              class Bridge {
+                  @JavascriptInterface
+                  public boolean isNative() { return true; }
+
+                  @JavascriptInterface
+                  public void speak(String text, float pitch, float rate) {
+                      if (!ttsReady || tts == null) {
+                          js("jvNative.onSpeakDone()");
+                          return;
+                      }
+                      WakeService.pauseAll();
+                      tts.setPitch(pitch);
+                      tts.setSpeechRate(rate);
+                      tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "u" + System.currentTimeMillis());
+                  }
+
+                  @JavascriptInterface
+                  public void stopSpeak() {
+                      if (tts != null) tts.stop();
+                  }
+
+                  @JavascriptInterface
+                  public void listen() {
+                      ui.post(MainActivity.this::startListening);
+                  }
+
+                  @JavascriptInterface
+                  public void stopListen() {
+                      ui.post(() -> {
+                          if (recognizer != null) recognizer.stopListening();
+                      });
+                  }
+
+                  @JavascriptInterface
+                  public String torch(boolean on) {
+                      try {
+                          CameraManager cm = (CameraManager) getSystemService(CAMERA_SERVICE);
+                          for (String id : cm.getCameraIdList()) {
+                              Boolean f = cm.getCameraCharacteristics(id).get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
+                              if (f != null && f) {
+                                  cm.setTorchMode(id, on);
+                                  return on ? "Lanterna ligada." : "Lanterna desligada.";
+                              }
+                          }
+                          return "Este celular não tem lanterna.";
+                      } catch (Exception e) {
+                          return "Falha ao controlar a lanterna.";
+                      }
+                  }
+
+                  @JavascriptInterface
+                  public String openApp(String name) {
+                      try {
+                          return openAppByName(name);
+                      } catch (Exception e) {
+                          return "";
+                      }
+                  }
+
+                  @JavascriptInterface
+                  public String listApps() {
+                      JSONArray arr = new JSONArray();
+                      try {
+                          PackageManager pm = getPackageManager();
+                          for (ResolveInfo ri : launchables()) arr.put(ri.loadLabel(pm).toString());
+                      } catch (Exception ignored) { }
+                      return arr.toString();
+                  }
+
+                  @JavascriptInterface
+                  public void vibrate(String pattern) {
+                      try {
+                          String[] p = pattern.split(",");
+                          long[] arr = new long[p.length + 1];
+                          arr[0] = 0;
+                          for (int i = 0; i < p.length; i++) arr[i + 1] = Long.parseLong(p[i].trim());
+                          Vibrator v = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+                          if (v != null) v.vibrate(VibrationEffect.createWaveform(arr, -1));
+                      } catch (Exception ignored) { }
+                  }
+
+                  @JavascriptInterface
+                  public void setAlarm(String id, double due, String text) {
+                      try {
+                          AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
+                          PendingIntent pi = AlarmReceiver.pending(MainActivity.this, id, text, false);
+                          long when = (long) due;
+                          try {
+                              am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, when, pi);
+                          } catch (SecurityException se) {
+                              am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, when, pi);
+                          }
+                      } catch (Exception ignored) { }
+                  }
+
+                  @JavascriptInterface
+                  public void cancelAlarm(String id) {
+                      try {
+                          AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
+                          PendingIntent pi = AlarmReceiver.pending(MainActivity.this, id, "", true);
+                          if (pi != null) am.cancel(pi);
+                      } catch (Exception ignored) { }
+                  }
+
+                  @JavascriptInterface
+                  public void setWake(boolean on) {
+                      ui.post(() -> {
+                          if (on) {
+                              if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                                  requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQ_WAKE);
+                              } else {
+                                  startWakeService();
+                              }
+                          } else {
+                              stopService(new Intent(MainActivity.this, WakeService.class));
+                          }
+                      });
+                  }
+
+                  @JavascriptInterface
+                  public boolean wakeRunning() { return WakeService.running; }
+
+                  @JavascriptInterface
+                  public String takePendingCommand() {
+                      String c = pendingCommand;
+                      pendingCommand = "";
+                      return c;
+                  }
+
+                  @JavascriptInterface
+                  public void openOverlaySettings() {
+                      try {
+                          Intent i = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
+                          i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                          startActivity(i);
+                      } catch (Exception ignored) { }
+                  }
+
+                  @JavascriptInterface
+                  public void openAssistSettings() {
+                      try {
+                          Intent i = new Intent(Settings.ACTION_VOICE_INPUT_SETTINGS);
+                          i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                          startActivity(i);
+                      } catch (Exception e) {
+                          try {
+                              Intent i = new Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS);
+                              i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                              startActivity(i);
+                          } catch (Exception ignored) { }
+                      }
+                  }
+
+                  @JavascriptInterface
+                  public void openUrl(String url) {
+                      ui.post(() -> openExternal(url));
+                  }
+              }
+          }
+          JARVIS_EOF
+          cat > app/src/main/java/com/kirito/jarvis/WakeService.java <<'JARVIS_EOF'
+          package com.kirito.jarvis;
+
+          import android.app.Notification;
+          import android.app.NotificationChannel;
+          import android.app.NotificationManager;
+          import android.app.PendingIntent;
+          import android.app.Service;
+          import android.content.Intent;
+          import android.content.pm.ServiceInfo;
+          import android.os.Build;
+          import android.os.Bundle;
+          import android.os.Handler;
+          import android.os.IBinder;
+          import android.os.Looper;
+          import android.provider.Settings;
+          import android.speech.RecognitionListener;
+          import android.speech.RecognizerIntent;
+          import android.speech.SpeechRecognizer;
+
+          import java.util.ArrayList;
+          import java.util.regex.Matcher;
+          import java.util.regex.Pattern;
+
+          /** Fica ouvindo a palavra "Jarvis" em segundo plano. */
+          public class WakeService extends Service {
+
+              static volatile WakeService inst;
+              static volatile boolean running = false;
+
+              static final Pattern WAKE = Pattern.compile("(?i)\\b(jarvis|jarbas|jarves|jarvi|javis|jervis)\\b[\\s,.!]*(.*)");
+
+              final Handler h = new Handler(Looper.getMainLooper());
+              SpeechRecognizer rec;
+              boolean paused = false;
+              final Runnable startRunnable = this::startRec;
+              final Runnable resumeRunnable = this::resume;
+
+              static void pauseAll() {
+                  WakeService s = inst;
+                  if (s != null) s.h.post(s::pause);
+              }
+
+              /** Chamar só na thread principal. */
+              static void pauseNow() {
+                  WakeService s = inst;
+                  if (s != null) s.pause();
+              }
+
+              static void resumeAll() {
+                  WakeService s = inst;
+                  if (s != null) {
+                      s.h.removeCallbacks(s.resumeRunnable);
+                      s.h.postDelayed(s.resumeRunnable, 700);
+                  }
+              }
+
+              @Override
+              public void onCreate() {
+                  super.onCreate();
+                  inst = this;
+                  running = true;
+              }
+
+              @Override
+              public int onStartCommand(Intent intent, int flags, int startId) {
+                  NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+                  nm.createNotificationChannel(new NotificationChannel("wake", "Escuta do Jarvis", NotificationManager.IMPORTANCE_LOW));
+                  PendingIntent open = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class),
+                          PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+                  Notification n = new Notification.Builder(this, "wake")
+                          .setContentTitle("J.A.R.V.I.S. ouvindo")
+                          .setContentText("Diga \"Jarvis...\" para me chamar")
+                          .setSmallIcon(R.drawable.ic_jarvis)
+                          .setContentIntent(open)
+                          .setOngoing(true)
+                          .build();
+                  try {
+                      if (Build.VERSION.SDK_INT >= 30) {
+                          startForeground(1, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
+                      } else {
+                          startForeground(1, n);
+                      }
+                  } catch (Exception e) {
+                      stopSelf();
+                      return START_NOT_STICKY;
+                  }
+                  if (rec == null && !paused) startRec();
+                  return START_STICKY;
+              }
+
+              void startRec() {
+                  if (paused) return;
+                  h.removeCallbacks(startRunnable);
+                  try {
+                      if (rec != null) rec.destroy();
+                      rec = SpeechRecognizer.createSpeechRecognizer(this);
+                      rec.setRecognitionListener(new RecognitionListener() {
+                          @Override public void onReadyForSpeech(Bundle params) { }
+                          @Override public void onBeginningOfSpeech() { }
+                          @Override public void onRmsChanged(float rmsdB) { }
+                          @Override public void onBufferReceived(byte[] buffer) { }
+                          @Override public void onEndOfSpeech() { }
+                          @Override public void onPartialResults(Bundle partialResults) { }
+                          @Override public void onEvent(int eventType, Bundle params) { }
+
+                          @Override
+                          public void onError(int error) {
+                              boolean quiet = error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT;
+                              restart(quiet ? 250 : 1500);
+                          }
+
+                          @Override
+                          public void onResults(Bundle results) {
+                              ArrayList<String> list = results == null ? null : results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                              if (list != null) {
+                                  for (String t : list) {
+                                      if (t == null) continue;
+                                      Matcher m = WAKE.matcher(t);
+                                      if (m.find()) {
+                                          String cmd = m.group(2) == null ? "" : m.group(2).trim();
+                                          trigger(cmd.isEmpty() ? "__WAKE__" : cmd);
+                                          return;
+                                      }
+                                  }
+                              }
+                              restart(250);
+                          }
+                      });
+                      Intent it = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                      it.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+                      it.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "pt-BR");
+                      it.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
+                      rec.startListening(it);
+                  } catch (Exception e) {
+                      restart(3000);
+                  }
+              }
+
+              void restart(long ms) {
+                  if (paused) return;
+                  h.removeCallbacks(startRunnable);
+                  h.postDelayed(startRunnable, ms);
+              }
+
+              void pause() {
+                  paused = true;
+                  h.removeCallbacks(startRunnable);
+                  if (rec != null) {
+                      try {
+                          rec.cancel();
+                          rec.destroy();
+                      } catch (Exception ignored) { }
+                      rec = null;
+                  }
+              }
+
+              void resume() {
+                  if (!paused) return;
+                  paused = false;
+                  startRec();
+              }
+
+              void trigger(String cmd) {
+                  pause();
+                  Intent i = new Intent(this, MainActivity.class);
+                  i.putExtra("cmd", cmd);
+                  i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                  boolean visible = MainActivity.current != null && MainActivity.current.hasWindowFocus();
+                  try {
+                      startActivity(i);
+                  } catch (Exception ignored) { }
+                  if (!visible && !Settings.canDrawOverlays(this)) {
+                      // O Android pode bloquear abrir sozinho: deixa um aviso para tocar.
+                      NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+                      nm.createNotificationChannel(new NotificationChannel("call", "Chamadas do Jarvis", NotificationManager.IMPORTANCE_HIGH));
+                      PendingIntent pi = PendingIntent.getActivity(this, 2, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+                      Notification n = new Notification.Builder(this, "call")
+                              .setContentTitle("J.A.R.V.I.S.")
+                              .setContentText("__WAKE__".equals(cmd) ? "Pois não? Toque para falar." : "Ouvi: \"" + cmd + "\". Toque para eu responder.")
+                              .setSmallIcon(R.drawable.ic_jarvis)
+                              .setContentIntent(pi)
+                              .setAutoCancel(true)
+                              .build();
+                      nm.notify(2, n);
+                  }
+                  // Segurança: volta a ouvir mesmo se ninguém responder.
+                  h.removeCallbacks(resumeRunnable);
+                  h.postDelayed(resumeRunnable, 20000);
+              }
+
+              @Override
+              public void onDestroy() {
+                  running = false;
+                  pause();
+                  h.removeCallbacksAndMessages(null);
+                  if (inst == this) inst = null;
+                  super.onDestroy();
+              }
+
+              @Override
+              public IBinder onBind(Intent intent) { return null; }
+          }
+          JARVIS_EOF
+          cat > app/src/main/java/com/kirito/jarvis/AlarmReceiver.java <<'JARVIS_EOF'
+          package com.kirito.jarvis;
+
+          import android.app.Notification;
+          import android.app.NotificationChannel;
+          import android.app.NotificationManager;
+          import android.app.PendingIntent;
+          import android.content.BroadcastReceiver;
+          import android.content.Context;
+          import android.content.Intent;
+
+          /** Mostra o alarme/lembrete mesmo com o app fechado. */
+          public class AlarmReceiver extends BroadcastReceiver {
+
+              static PendingIntent pending(Context ctx, String id, String text, boolean onlyExisting) {
+                  Intent i = new Intent(ctx, AlarmReceiver.class);
+                  i.setAction("com.kirito.jarvis.ALARM." + id);
+                  i.putExtra("text", text);
+                  int flags = PendingIntent.FLAG_IMMUTABLE | (onlyExisting ? PendingIntent.FLAG_NO_CREATE : PendingIntent.FLAG_UPDATE_CURRENT);
+                  return PendingIntent.getBroadcast(ctx, id.hashCode(), i, flags);
+              }
+
+              @Override
+              public void onReceive(Context ctx, Intent intent) {
+                  String text = intent.getStringExtra("text");
+                  if (text == null || text.isEmpty()) text = "Lembrete";
+                  NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
+                  NotificationChannel ch = new NotificationChannel("alarms", "Alarmes do Jarvis", NotificationManager.IMPORTANCE_HIGH);
+                  ch.enableVibration(true);
+                  ch.setVibrationPattern(new long[]{0, 400, 150, 400, 150, 800});
+                  nm.createNotificationChannel(ch);
+                  PendingIntent open = PendingIntent.getActivity(ctx, 1, new Intent(ctx, MainActivity.class),
+                          PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+                  Notification n = new Notification.Builder(ctx, "alarms")
+                          .setSmallIcon(R.drawable.ic_jarvis)
+                          .setContentTitle("J.A.R.V.I.S.")
+                          .setContentText(text)
+                          .setCategory(Notification.CATEGORY_ALARM)
+                          .setAutoCancel(true)
+                          .setContentIntent(open)
+                          .build();
+                  nm.notify((int) (System.currentTimeMillis() % 100000), n);
+              }
+          }
+          JARVIS_EOF
+
+      - name: Montar o APK
+        working-directory: jarvis
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Preparar arquivo
+        run: cp jarvis/app/build/outputs/apk/debug/app-debug.apk Jarvis.apk
+
+      - name: Guardar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Jarvis-APK
+          path: Jarvis.apk
+
+      - name: Publicar para download
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: app-v${{ github.run_number }}
+          name: Jarvis App v${{ github.run_number }}
+          body: Baixe o arquivo Jarvis.apk abaixo e instale no celular.
+          files: Jarvis.apk
