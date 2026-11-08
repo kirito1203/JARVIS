@@ -223,12 +223,12 @@ const cfg={
   get pitch(){return parseFloat(store.get('jv_pitch','0.75'));},
   get rate(){return parseFloat(store.get('jv_rate','0.95'));}
 };
-let voiceOn=store.get('jv_voice','1')==='1',history=[],busy=false,pendingNav=null,mode=store.get('jv_mode','normal');
+let voiceOn=store.get('jv_voice','1')==='1',history=[],busy=false,pendingNav=null,searchFallbackLink=null,mode=store.get('jv_mode','normal');
 let handsfree=store.get('jv_handsfree','0')==='1';
 const tvScan={active:false,idx:0};
 $('voiceBtn').textContent='VOZ: '+(voiceOn?'ON':'OFF');
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
-const JV_VERSION='v3.2';
+const JV_VERSION='v3.3';
 let turnNo=0,pendingReply=null,lastUserText='',waWaiter=null;
 const norm=s=>s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
 
@@ -424,7 +424,7 @@ const str=d=>({type:'STRING',description:d}),num=d=>({type:'NUMBER',description:
 const TOOLS=[
  {name:'clima',description:'Previsão do tempo atual e dos próximos 3 dias. Use para perguntas sobre clima, temperatura, chuva, frio, calor.',parameters:S({cidade:str('Cidade. Vazio = cidade do usuário.')}),
   run:async a=>{toolNote('CONSULTANDO SATÉLITES METEOROLÓGICOS');return await weather(a.cidade);}},
- {name:'pesquisar_internet',description:'Pesquisa informações atuais na internet: notícias, resultados de jogos, preços, lançamentos, fatos recentes, qualquer coisa que você não saiba ou possa ter mudado.',parameters:S({pergunta:str('O que pesquisar')},['pergunta']),
+ {name:'pesquisar_internet',description:'Pesquisa QUALQUER coisa na internet ao vivo: notícias, resultados de loteria (mega-sena etc.), placares de jogos, preços, lançamentos, clima, fatos recentes — qualquer pergunta que precise de informação de hoje ou que você não tenha certeza. Use sempre que o usuário pedir algo atual.',parameters:S({pergunta:str('O que pesquisar, com as palavras do usuário')},['pergunta']),
   run:async a=>{toolNote('VARRENDO A INTERNET');return await groundedSearch(a.pergunta);}},
  {name:'criar_alarme',description:'Cria um timer ou lembrete que dispara depois de um tempo. Converta o pedido em segundos totais.',parameters:S({segundos:num('Daqui a quantos segundos'),texto:str('O que lembrar'),tipo:str('"timer" ou "lembrete"')},['segundos','texto']),
   run:async a=>{const r={id:Date.now()+''+Math.random(),due:Date.now()+Math.max(1,a.segundos)*1000,text:a.texto||'tempo esgotado',kind:a.tipo==='timer'?'timer':'lembrete'};D.reminders.push(r);save();schedule(r);if(NATIVE)try{NATIVE.setAlarm(r.id,r.due,r.text);}catch(e){}toolNote('ALARME PROGRAMADO');try{if('Notification'in window&&Notification.permission==='default')Notification.requestPermission().catch(()=>{});}catch(e){}return {ok:true,dispara_as:new Date(r.due).toLocaleTimeString('pt-BR'),aviso:'Só toca com o app aberto ou em segundo plano recente.'};}},
@@ -609,12 +609,28 @@ async function gemini(body,model){
   }
   throw limitHit||last;   // se algum bateu no limite, avisa isso (e não o erro do último modelo)
 }
+function fontePesquisa(q){
+  const n=norm(q);
+  if(/mega.?sena|quina|lotofacil|lotomania|loteria|timemania|dupla.?sena|loteca|caixa/.test(n))
+    return {label:'🎰 Resultados da Caixa',url:'https://loterias.caixa.gov.br/Paginas/default.aspx'};
+  return {label:'🔎 Ver no Google',url:'https://www.google.com/search?q='+encodeURIComponent(q.replace(/^(pesquis\w*|procur\w*|busca\w*)\s+(sobre\s+|por\s+)?/i,''))};
+}
 async function groundedSearch(q){
-  try{
-    const j=await gemini({contents:[{role:'user',parts:[{text:q+'\n\nResponda em português do Brasil, com os fatos principais, de forma resumida. Data de hoje: '+new Date().toLocaleDateString('pt-BR')}]}],tools:[{google_search:{}}]});
-    const t=(j.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('').trim();
-    return {resultado:t||'Nada encontrado.'};
-  }catch(e){return {erro:'Falha na pesquisa: '+e.message};}
+  // usa modelos leves primeiro para a busca (têm busca grátis e gastam menos cota)
+  const ordem=['gemini-flash-latest','gemini-flash-lite-latest','gemini-3.5-flash','gemini-3.5-flash-lite'];
+  const now=Date.now();
+  let lastErr=null;
+  for(const m of ordem){
+    if(exhausted[m]>now)continue;
+    try{
+      const j=await gemini({contents:[{role:'user',parts:[{text:q+'\n\nResponda em português do Brasil, com os fatos principais, de forma resumida. Data de hoje: '+new Date().toLocaleDateString('pt-BR')}]}],tools:[{google_search:{}}]},m);
+      const t=(j.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('').trim();
+      if(t)return {resultado:t};
+    }catch(e){lastErr=e;if(e.status===429){exhausted[m]=Date.now()+90e3;try{store.set('jv_exhausted',JSON.stringify(exhausted));}catch(x){}}}
+  }
+  // acabou a cota de busca: devolve link direto da fonte certa, para o Jarvis dar um botão
+  const f=fontePesquisa(q);searchFallbackLink={url:f.url,label:f.label};
+  return {sem_busca_agora:true,motivo:'Atingi o limite grátis de pesquisa ao vivo por agora.',ofereca_link:f.label,instrucao:'Diga ao usuário, em uma frase curta, que a busca ao vivo está no limite grátis agora (volta por volta das 5h da manhã) e que você deixou um botão com a fonte oficial para ele ver na hora.'};
 }
 function trimHistory(){
   while(history.length>30){history.shift();while(history.length&&!(history[0].role==='user'&&history[0].parts.some(p=>p.text)))history.shift();}
@@ -623,7 +639,7 @@ async function ai(c){
   trimHistory();const startLen=history.length;
   history.push({role:'user',parts:[{text:c}]});
   hud.classList.add('thinking');setStatus('PROCESSANDO...');
-  let finalText='',errLink=null;
+  let finalText='',errLink=null;searchFallbackLink=null;
   try{
     for(let step=0;step<8;step++){
       const j=await gemini({systemInstruction:{parts:[{text:systemPrompt()}]},contents:history,tools:[{functionDeclarations:DECL}]});
@@ -652,7 +668,7 @@ async function ai(c){
   }
   hud.classList.remove('thinking');setStatus();
   const nav=pendingNav;pendingNav=null;
-  const span=add(finalText,'jv',nav||errLink);
+  const span=add(finalText,'jv',nav||errLink||searchFallbackLink);
   await speak(finalText);
   if(nav){try{location.href=nav.url;}catch(e){}}
 }
