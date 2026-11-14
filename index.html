@@ -766,7 +766,7 @@
       </div>
     </div>
   </div>
-  <div class="cenFoot"><span class="cenLogo">◭ JARVIS <span id="cenVer">v10.3</span> · Stark Industries Technology</span><div class="cenWave" id="cenWave"></div><span class="cenReady">Sistema pronto para receber comandos…</span><canvas id="radarC2" class="cenRadar"></canvas></div>
+  <div class="cenFoot"><span class="cenLogo">◭ JARVIS <span id="cenVer">v10.4</span> · Stark Industries Technology</span><div class="cenWave" id="cenWave"></div><span class="cenReady">Sistema pronto para receber comandos…</span><canvas id="radarC2" class="cenRadar"></canvas></div>
  </div>
  <button id="centralExit" class="ovexit">✕ SAIR</button>
 </div>
@@ -810,7 +810,7 @@ $('voiceBtn').textContent='VOZ: '+(voiceOn?'ON':'OFF');
 /* Mata qualquer service worker/cache antigo para o app SEMPRE baixar a versão nova (não trava mais em versão velha) */
 if('serviceWorker' in navigator){try{navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});}catch(e){}}
 if('caches'in window){try{caches.keys().then(ks=>ks.forEach(k=>caches.delete(k))).catch(()=>{});}catch(e){}}
-const JV_VERSION='v10.3';
+const JV_VERSION='v10.4';
 let turnNo=0,pendingReply=null,lastUserText='',waWaiter=null;
 const norm=s=>s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
 
@@ -1890,7 +1890,7 @@ async function quick(c){
   {const mu=c.match(/instalar habilidade\s+(https:\/\/\S+)/i);if(mu){await installSkill(mu[1]);return true;}}
   const t=norm(c).replace(/^jarvis[, ]*/,'').replace(/[.!?]+$/,'');
   // ----- central das IAs: painel, uso direto, comparação, conselho -----
-  if(/^(abrir |abre |mostrar |mostra )?(painel|central|status|estado|saude|monitor)( das| dos| de)? ?(ias?|inteligencias|nucleos|provedores)$/.test(t)){openAiHub();const sl=aiSlots();await say(sl.length+' '+(sl.length===1?'inteligência configurada':'inteligências configuradas')+', '+cfg.name+'. Abri a central.');return true;}
+  if(/^(abrir |abre |abra |mostrar |mostra |mostre |ver )?(o |a )?(painel|central|status|estado|saude|monitor)( das| dos| de| da| do)? ?(ias?|ia s|i a s?|ia's|ias'|ais|aias|e as|yas|inteligencias?( artificia(l|is))?|nucleos|provedores|cerebros)$/.test(t.replace(/[’']/g,"'"))){openAiHub();const sl=aiSlots();await say(sl.length+' '+(sl.length===1?'inteligência configurada':'inteligências configuradas')+', '+cfg.name+'. Abri a central.');return true;}
   if(/^(liberar|resetar|limpar|zerar)( os| as)? ?(limites|esperas)( das ias| das inteligencias)?$/.test(t)){aiClearWaits();await say('Esperas limpas, '+cfg.name+'. Vou tentar todas as inteligências de novo. Se o provedor ainda estiver no limite, ele mesmo recusa.');return true;}
   {const cq=c.replace(/^jarvis[, ]*/i,'').trim();let m;
    if((m=cq.match(/^compar(?:a|e|ar)\s+(?:as\s+)?(?:ias?|intelig[eê]ncias|respostas)\s*[:,-]?\s*(.{3,})$/i))){await aiCompare(m[1]);return true;}
