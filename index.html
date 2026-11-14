@@ -766,7 +766,7 @@
       </div>
     </div>
   </div>
-  <div class="cenFoot"><span class="cenLogo">◭ JARVIS <span id="cenVer">v10.4</span> · Stark Industries Technology</span><div class="cenWave" id="cenWave"></div><span class="cenReady">Sistema pronto para receber comandos…</span><canvas id="radarC2" class="cenRadar"></canvas></div>
+  <div class="cenFoot"><span class="cenLogo">◭ JARVIS <span id="cenVer">v10.5</span> · Stark Industries Technology</span><div class="cenWave" id="cenWave"></div><span class="cenReady">Sistema pronto para receber comandos…</span><canvas id="radarC2" class="cenRadar"></canvas></div>
  </div>
  <button id="centralExit" class="ovexit">✕ SAIR</button>
 </div>
@@ -810,7 +810,7 @@ $('voiceBtn').textContent='VOZ: '+(voiceOn?'ON':'OFF');
 /* Mata qualquer service worker/cache antigo para o app SEMPRE baixar a versão nova (não trava mais em versão velha) */
 if('serviceWorker' in navigator){try{navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});}catch(e){}}
 if('caches'in window){try{caches.keys().then(ks=>ks.forEach(k=>caches.delete(k))).catch(()=>{});}catch(e){}}
-const JV_VERSION='v10.4';
+const JV_VERSION='v10.5';
 let turnNo=0,pendingReply=null,lastUserText='',waWaiter=null;
 const norm=s=>s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
 
@@ -1702,8 +1702,15 @@ async function slotCall(sl,body){
   finally{aiStSave();}
 }
 function aiWhy(e){return e.status===429?'no limite do provedor':e.status===401||e.status===403?'chave recusada':e.status===402?'sem saldo':e.status===0?'sem conexão':e.status>=500?'servidor instável':'erro '+(e.status||'')}
+// ROTA INTELIGENTE: IA que falhou ou demorou demais há pouco vai para o fim da fila por alguns minutos
+let routeReset=0;
+function slotPaused(sl){const st=aiSt(sl),age=Date.now()-st.at;if(!st.at||st.at<routeReset)return false;
+  if(st.code===429)return age<10*60000;            // limite do provedor: 10 min
+  if(st.code!==200)return age<4*60000;             // falha: 4 min
+  return st.ms>10000&&age<4*60000;}                // respondeu, mas levou mais de 10 s
+function smartOrder(sl){const ok=sl.filter(s=>!slotPaused(s));return ok.length?ok.concat(sl.filter(slotPaused)):sl;}
 async function brain(body){
-  const order=aiSlots();let last,lim=null;const falhas=[];
+  const order=smartOrder(aiSlots());let last,lim=null;const falhas=[];
   for(let i=0;i<order.length;i++){const sl=order[i];
     try{const j=await slotCall(sl,body);lastBrain=sl.nome;if(falhas.length)brainNote='RESPONDIDO POR '+sl.nome.toUpperCase()+' ('+falhas.join('; ')+')';return j;}
     catch(e){last=e;if(e.status===429)lim=e;falhas.push(sl.nome+' '+aiWhy(e));if(i<order.length-1)setStatus('TROCANDO DE NÚCLEO...');}
@@ -1732,7 +1739,7 @@ async function aiCouncil(q){
     try{const j=await brain({systemInstruction:{parts:[{text:AI_SYS()}]},contents:[{role:'user',parts:[{text:p}]}]});fim=pTxt(j.candidates?.[0]?.content||{}).trim()||fim;}catch(e){}}
   hud.classList.remove('thinking');setStatus();await say(fim);
 }
-function aiClearWaits(){for(const k in exhausted)delete exhausted[k];store.set('jv_exhausted','{}');for(const k in xpDown)delete xpDown[k];goodModel=null;}
+function aiClearWaits(){routeReset=Date.now();for(const k in exhausted)delete exhausted[k];store.set('jv_exhausted','{}');for(const k in xpDown)delete xpDown[k];goodModel=null;}
 function aiHubRender(){
   const sl=aiSlots(),now=Date.now();const b=$('aihubBody');if(!b)return;
   if(!sl.length){b.innerHTML='<p>Nenhuma IA configurada. Coloque as chaves em CONFIG.</p>';return;}
@@ -1741,7 +1748,7 @@ function aiHubRender(){
   b.innerHTML=sl.map((s,i)=>{const st=aiSt(s);
     const wait=s.prov==='gemini'?gWait:Object.keys(xpDown).filter(k=>k.indexOf(s.n+s.base)===0&&xpDown[k]>now).length;
     const estado=!st.at?'⚪ ainda não usada':st.code===200?'🟢 funcionando':st.code===429?'🟠 no limite do provedor':st.code===401||st.code===403?'🔴 chave recusada':st.code===402?'🔴 sem saldo':st.code===0?'🟠 sem conexão':'🟠 erro '+st.code;
-    return '<div style="border:1px solid var(--c2);border-radius:10px;padding:8px;margin:8px 0;font:600 14px Rajdhani"><b style="color:var(--c);font:700 12px Orbitron">IA '+s.n+' · '+esc(s.nome)+(i===0?' · PRINCIPAL':'')+'</b><br>'+estado+'<br>Chave: '+(s.via?'no servidor ☁'+(s.key?' (reserva no celular)':''):'no celular')+
+    return '<div style="border:1px solid var(--c2);border-radius:10px;padding:8px;margin:8px 0;font:600 14px Rajdhani"><b style="color:var(--c);font:700 12px Orbitron">IA '+s.n+' · '+esc(s.nome)+(i===0?' · PRINCIPAL':'')+'</b><br>'+estado+(slotPaused(s)?'<br>⏸ Em pausa na rota inteligente (volta sozinha em alguns minutos)':'')+'<br>Chave: '+(s.via?'no servidor ☁'+(s.key?' (reserva no celular)':''):'no celular')+
       '<br>Modelo: '+esc(s.model||(s.prov==='gemini'?(goodModel||'automático'):(xpModels[s.n+s.base]&&xpModels[s.n+s.base][0])||'automático'))+
       '<br>Pedidos: '+st.req+' · certos: '+st.ok+' · falhas: '+st.fail+' · limite atingido: '+st.lim+'x'+
       '<br>Última resposta: '+(st.ms?st.ms+' ms':'—')+(st.at?' · '+new Date(st.at).toLocaleTimeString('pt-BR'):'')+
