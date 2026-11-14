@@ -766,7 +766,7 @@
       </div>
     </div>
   </div>
-  <div class="cenFoot"><span class="cenLogo">◭ JARVIS <span id="cenVer">v10.2</span> · Stark Industries Technology</span><div class="cenWave" id="cenWave"></div><span class="cenReady">Sistema pronto para receber comandos…</span><canvas id="radarC2" class="cenRadar"></canvas></div>
+  <div class="cenFoot"><span class="cenLogo">◭ JARVIS <span id="cenVer">v10.3</span> · Stark Industries Technology</span><div class="cenWave" id="cenWave"></div><span class="cenReady">Sistema pronto para receber comandos…</span><canvas id="radarC2" class="cenRadar"></canvas></div>
  </div>
  <button id="centralExit" class="ovexit">✕ SAIR</button>
 </div>
@@ -810,7 +810,7 @@ $('voiceBtn').textContent='VOZ: '+(voiceOn?'ON':'OFF');
 /* Mata qualquer service worker/cache antigo para o app SEMPRE baixar a versão nova (não trava mais em versão velha) */
 if('serviceWorker' in navigator){try{navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});}catch(e){}}
 if('caches'in window){try{caches.keys().then(ks=>ks.forEach(k=>caches.delete(k))).catch(()=>{});}catch(e){}}
-const JV_VERSION='v10.2';
+const JV_VERSION='v10.3';
 let turnNo=0,pendingReply=null,lastUserText='',waWaiter=null;
 const norm=s=>s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
 
@@ -1580,13 +1580,13 @@ async function gemini(body,model){
   const key=store.get('jv_key','');
   const call=async(m,direto)=>{
     const via=!direto&&srvHas('gemini');
-    const ctrl=new AbortController();const to=setTimeout(()=>ctrl.abort(),45000);
+    const ctrl=new AbortController();const to=setTimeout(()=>ctrl.abort(),JSON.stringify(body).length>200000?45000:25000);
     let r;
     try{r=await fetch(via?srvUrl()+'/ai/gemini/'+encodeURIComponent(m):`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`,{method:'POST',headers:via?{'Content-Type':'application/json','X-Jarvis-Key':store.get('jv_srvkey','')}:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(noFast[m]?body:{...body,generationConfig:{...(body.generationConfig||{}),thinkingConfig:{thinkingBudget:0}}}),signal:ctrl.signal});}
-    catch(err){if(via&&key&&!ctrl.signal.aborted){clearTimeout(to);return call(m,true);}const e=new Error(ctrl.signal.aborted?'demorou demais':'sem conexão');e.status=0;throw e;}
+    catch(err){if(via&&key&&!ctrl.signal.aborted){clearTimeout(to);return call(m,true);}const e=new Error(ctrl.signal.aborted?'demorou demais':'sem conexão');e.status=0;e.lento=ctrl.signal.aborted;throw e;}
     finally{clearTimeout(to);}
     const j=await r.json().catch(()=>({}));
-    if(via&&!r.ok&&srvOwnErr(r.status,j)){if(key)return call(m,true);const e=new Error('Servidor: '+j.erro);e.status=r.status===401?403:r.status;throw e;}
+    if(via&&!r.ok&&(srvOwnErr(r.status,j)||(r.status>=500&&!j.error))){if(key)return call(m,true);const e=new Error('Servidor: '+j.erro);e.status=r.status===401?403:r.status;throw e;}
     if(!r.ok){if(r.status===400&&!noFast[m]&&/think|budget|generationConfig/i.test(j.error?.message||'')){noFast[m]=1;return call(m,direto);}const e=new Error(j.error?.message||('HTTP '+r.status));e.status=r.status;throw e;}
     return j;
   };
@@ -1596,9 +1596,10 @@ async function gemini(body,model){
   const now=Date.now();
   const fresh=list.filter(m=>!(exhausted[m]>now));
   if(fresh.length)list=fresh;   // pula modelos que bateram no limite há pouco
-  let last,limitHit=null;
+  let last,limitHit=null,instavel=0;
   for(const m of list){
-    for(let attempt=0;attempt<3;attempt++){
+    if(instavel>=2)break;   // Gemini instável: não insiste em todos os modelos, deixa a próxima IA responder
+    for(let attempt=0;attempt<2;attempt++){
       try{const j=await call(m);goodModel=m;delete exhausted[m];return j;}
       catch(e){
         last=e;
@@ -1613,8 +1614,9 @@ async function gemini(body,model){
           if(e.status===404||/no longer available|not found|not supported/i.test(e.message)){exhausted[m]=Date.now()+7*24*3600e3;try{store.set('jv_exhausted',JSON.stringify(exhausted));}catch(x){}}
           break;
         }
-        if(attempt<2){setStatus('RECONECTANDO...');await sleep(1200*(attempt+1));continue;} // 500/503/rede: tenta de novo
-        break;
+        if(e.lento){instavel=9;break;}                     // estourou o tempo: não repete, passa para a próxima IA
+        if(attempt<1){setStatus('RECONECTANDO...');await sleep(900);continue;} // 500/503/rede: tenta mais uma vez
+        instavel++;break;
       }
     }
   }
