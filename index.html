@@ -319,6 +319,9 @@
   .tool{align-self:flex-start;font:600 11px Orbitron;color:var(--c);opacity:.6;letter-spacing:1px;padding-left:4px}
   .imgMsg{align-self:flex-start;max-width:88%}
   .jvImg{max-width:min(82%,330px);width:auto;border-radius:14px;border:1px solid var(--c2);display:block;box-shadow:0 0 18px var(--glow)}
+  .fbRow{display:flex;gap:8px;margin-top:6px}.fbRow button{background:transparent;border:1px solid var(--c2);border-radius:8px;color:var(--c);font-size:14px;padding:2px 10px;opacity:.7}.fbRow button.on{opacity:1;background:var(--tint);border-color:var(--c)}
+  .msBar{height:6px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden;margin:6px 0}.msBar i{display:block;height:100%;background:var(--c)}
+  .msTask{display:flex;gap:8px;align-items:flex-start;font:600 14px Rajdhani;color:#cdefff;padding:5px 0;border-bottom:1px solid rgba(47,220,255,.12)}.msTask.ok span{opacity:.5;text-decoration:line-through}
   .imgCap{font:600 11px Rajdhani;color:var(--c);opacity:.65;letter-spacing:1px;margin-top:4px}
   .chips{display:flex;gap:6px;overflow-x:auto;padding:6px 12px;flex-shrink:0;scrollbar-width:none}
   .chip{flex-shrink:0;background:transparent;border:1px solid var(--c);color:var(--c);border-radius:20px;padding:6px 12px;font:600 14px Rajdhani;cursor:pointer}
@@ -519,6 +522,23 @@
   <textarea id="bkRestore" placeholder="cole um backup aqui para restaurar" style="width:100%;height:60px;background:rgba(0,0,0,.4);color:#cdefff;border:1px solid var(--c);border-radius:8px;font:12px monospace;padding:8px;margin-top:10px"></textarea>
   <div class="row"><button class="btn" id="bkRestoreBtn">RESTAURAR</button><button class="btn ghost" id="bkClose">FECHAR</button></div>
 </div></div>
+<div class="modal" id="aihub"><div class="panel"><h2>🧠 CENTRAL DAS IAs</h2>
+  <p>Estado real de cada inteligência configurada. O Jarvis não tem limite próprio de uso: só para quando o provedor recusa.</p>
+  <div id="aihubBody"></div>
+  <div class="row"><button class="btn" id="aihubTest">⚡ TESTAR TODAS</button><button class="btn ghost" id="aihubReset">↺ LIMPAR ESPERAS</button></div>
+  <div class="row"><button class="btn ghost" id="aihubClose">FECHAR</button></div>
+</div></div>
+<div class="modal" id="mission"><div class="panel"><h2>🎯 MISSION CONTROL</h2>
+  <p>Diga um objetivo e o Jarvis divide em tarefas. Toque numa tarefa para marcar como feita.</p>
+  <input id="msIn" type="text" placeholder="ex: terminar meu mod de RPG" autocomplete="off">
+  <div class="row"><button class="btn" id="msNew">CRIAR PLANO</button></div>
+  <div id="msBody" style="max-height:46vh;overflow:auto;margin-top:8px"></div>
+  <div class="row"><button class="btn ghost" id="msClose">FECHAR</button></div>
+</div></div>
+<div class="modal" id="diag"><div class="panel"><h2>🩺 AUTODIAGNÓSTICO</h2>
+  <div id="diagBody" style="max-height:60vh;overflow:auto;display:grid;gap:8px"></div>
+  <div class="row"><button class="btn" id="diagRun">REFAZER</button><button class="btn ghost" id="diagClose">FECHAR</button></div>
+</div></div>
 <div class="modal" id="dev"><div class="panel"><h2>💻 DEVELOPER CORE</h2>
   <p>Cole um código, um erro ou um log. O Jarvis explica, acha bugs, documenta ou melhora.</p>
   <textarea id="devIn" placeholder="cole o código ou o erro aqui" style="width:100%;height:150px;background:rgba(0,0,0,.4);color:#cdefff;border:1px solid var(--c);border-radius:8px;font:12px monospace;padding:8px;box-sizing:border-box"></textarea>
@@ -551,9 +571,12 @@
   <div class="panel">
     <h2>CONFIGURAÇÕES</h2>
     <input id="keyIn" type="hidden">
-    <label>Inteligências do Jarvis (até 3, você escolhe)</label>
+    <label>Inteligências do Jarvis (até 4, você escolhe)</label>
     <div id="aiSlots"></div>
-    <p>O Jarvis usa a IA 1. Se ela falhar ou bater no limite, passa pra 2 e depois pra 3. As chaves ficam só neste celular. Pesquisa na internet e notícias só funcionam se uma delas for o Gemini.</p>
+    <div class="row"><button class="btn ghost" id="aihubBtn">🧠 CENTRAL DAS IAs (estado, teste, limites)</button></div>
+    <div class="row"><button class="btn ghost" id="missionBtn">🎯 MISSION CONTROL (projetos e tarefas)</button></div>
+    <div class="row"><button class="btn ghost" id="diagBtn">🩺 AUTODIAGNÓSTICO</button></div>
+    <p>O Jarvis usa a IA 1. Se ela falhar ou bater no limite, passa pra 2, 3 e 4. As chaves ficam só neste celular. Pesquisa na internet e notícias só funcionam se uma delas for o Gemini.</p>
     <label for="nameIn">Como o Jarvis te chama</label>
     <input id="nameIn" type="text" placeholder="senhor">
     <label for="cityIn">Sua cidade (para o clima)</label>
@@ -594,7 +617,9 @@
       <input id="srvIn" type="text" placeholder="ex: meu-worker.minhaconta.workers.dev" autocomplete="off">
       <label for="srvKeyIn">Senha do servidor (a SENHA que você criou no Cloudflare)</label>
       <input id="srvKeyIn" type="password" placeholder="senha do servidor" autocomplete="off">
+      <label class="check"><input type="checkbox" id="srvAiIn"> Usar as IAs pelo servidor (as chaves ficam guardadas no Cloudflare, não no celular)</label>
       <div class="row"><button class="btn ghost" id="srvTest">☁ TESTAR SERVIDOR</button></div>
+      <p>IAs com chave no servidor: <span id="srvIasState">—</span>. Com essa opção ligada, escolha a IA no slot e deixe o campo da chave vazio.</p>
       <p>Nuvem: <span id="srvState">não configurada</span>. Guarda anotações, memórias, contatos, protocolos e rotinas. As chaves de IA ficam só no celular.</p>
       <p>Envio automático no WhatsApp (o Jarvis aperta Enviar depois da sua confirmação): <span id="accState"></span></p>
       <div class="row"><button class="btn ghost" id="accBtn">📤 ENVIO AUTOMÁTICO</button></div>
@@ -741,7 +766,7 @@
       </div>
     </div>
   </div>
-  <div class="cenFoot"><span class="cenLogo">◭ JARVIS <span id="cenVer">v9.9</span> · Stark Industries Technology</span><div class="cenWave" id="cenWave"></div><span class="cenReady">Sistema pronto para receber comandos…</span><canvas id="radarC2" class="cenRadar"></canvas></div>
+  <div class="cenFoot"><span class="cenLogo">◭ JARVIS <span id="cenVer">v10.2</span> · Stark Industries Technology</span><div class="cenWave" id="cenWave"></div><span class="cenReady">Sistema pronto para receber comandos…</span><canvas id="radarC2" class="cenRadar"></canvas></div>
  </div>
  <button id="centralExit" class="ovexit">✕ SAIR</button>
 </div>
@@ -759,11 +784,11 @@
 const $=id=>document.getElementById(id);
 const log=$('log'),inp=$('inp'),hud=$('hud'),statusEl=$('status'),hint=$('subLine');
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:v;}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,v);}catch(e){}}};
-const DEF={notes:[],contacts:{},memories:[],protocols:{},reminders:[],custom:[],routines:[],monitors:[],skills:[]};
+const DEF={notes:[],contacts:{},memories:[],protocols:{},reminders:[],custom:[],routines:[],monitors:[],skills:[],projects:[],feedback:[],searches:[]};
 let D;try{D=Object.assign({},DEF,JSON.parse(store.get('jv_data','{}')));}catch(e){D=Object.assign({},DEF);}
 const save=()=>{store.set('jv_data',JSON.stringify(D));store.set('jv_data_t',String(Date.now()));updateSide();try{cloudQueue();}catch(e){}};
 const cfg={
-  get key(){return store.get('jv_key','');},
+  get key(){return store.get('jv_key','')||(srvHas('gemini')?'SRV':'');},
   get name(){return store.get('jv_name','')||'senhor';},
   get city(){return store.get('jv_city','');},
   get model(){return store.get('jv_model','')||'gemini-flash-latest';},
@@ -785,7 +810,7 @@ $('voiceBtn').textContent='VOZ: '+(voiceOn?'ON':'OFF');
 /* Mata qualquer service worker/cache antigo para o app SEMPRE baixar a versão nova (não trava mais em versão velha) */
 if('serviceWorker' in navigator){try{navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});}catch(e){}}
 if('caches'in window){try{caches.keys().then(ks=>ks.forEach(k=>caches.delete(k))).catch(()=>{});}catch(e){}}
-const JV_VERSION='v9.9';
+const JV_VERSION='v10.2';
 let turnNo=0,pendingReply=null,lastUserText='',waWaiter=null;
 const norm=s=>s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
 
@@ -988,6 +1013,12 @@ function vtTick(){const left=Math.max(0,vtEnd-Date.now()),s=Math.ceil(left/1000)
 // ---- nuvem (servidor próprio) ----
 function srvUrl(){let u=store.get('jv_srv','').trim().replace(/\/+$/,'');if(!u)return '';if(!/^https?:\/\//.test(u))u='https://'+u;return u;}
 function cloudOn(){return !!(srvUrl()&&store.get('jv_srvkey',''));}
+// ---- IAs pelo servidor: a chave fica no Cloudflare ----
+function srvIas(){try{return JSON.parse(store.get('jv_srvias','[]'))||[];}catch(e){return [];}}
+function srvHas(prov){return store.get('jv_srvai','0')==='1'&&cloudOn()&&srvIas().includes(prov);}
+async function srvInfo(){const ctrl=new AbortController();const to=setTimeout(()=>ctrl.abort(),8000);try{const r=await fetch(srvUrl()+'/',{signal:ctrl.signal});const j=await r.json();if(j&&j.ok)store.set('jv_srvias',JSON.stringify(Array.isArray(j.ias)?j.ias:[]));return j;}finally{clearTimeout(to);}}
+// erro do PRÓPRIO servidor (não da IA): permite cair para a chave local
+function srvOwnErr(status,j){return status===401&&j&&j.erro||status===502&&j&&j.erro||status===503&&j&&j.erro||status===404&&j&&j.erro;}
 let cloudTimer=null,cloudLast='';
 async function cloudReq(method,body){
   const ctrl=new AbortController();const to=setTimeout(()=>ctrl.abort(),12000);
@@ -1016,6 +1047,7 @@ async function cloudPull(forcar){
 }
 async function cloudStart(){
   if(!cloudOn())return;
+  if(store.get('jv_srvai','0')==='1')srvInfo().catch(()=>{});
   const r=await cloudPull(false);
   if(r.restaurado){toolNote('MEMÓRIA RESTAURADA DA NUVEM');setTimeout(()=>location.reload(),900);return;}
   if(r.ok&&(r.vazio||(parseInt(store.get('jv_data_t','0'))||0)>(r.remoto_t||0)))cloudPush();
@@ -1137,7 +1169,9 @@ async function deepResearch(topic){
   try{const j=await brain({contents:[{role:'user',parts:[{text:'Você é o J.A.R.V.I.S. Junte as pesquisas abaixo sobre "'+topic+'" em um relatório falado, em português do Brasil, com no máximo 130 palavras, sem asteriscos e sem listas: comece pela conclusão, depois os fatos e números principais, e termine com o principal risco ou ponto contrário. Não invente nada que não esteja nas pesquisas.\n\n'+ok.map((t,i)=>'PESQUISA '+(i+1)+':\n'+t).join('\n\n')}]}]});
     out=(j.candidates?.[0]?.content?.parts||[]).filter(p=>!p.thought).map(p=>p.text||'').join('').trim();}catch(e){}
   if(!out)out=ok[0];
-  await say(out.replace(/\[[\d, ]+\]/g,''));
+  out=out.replace(/\[[\d, ]+\]/g,'');
+  D.searches=(D.searches||[]).concat([{q:topic.slice(0,100),r:out.slice(0,900),t:Date.now()}]).slice(-15);save();
+  await say(out);
 }
 // ---- MONITOR: fica de olho em até 3 assuntos e avisa quando tem novidade ----
 async function monitorTick(){
@@ -1533,6 +1567,8 @@ Contatos salvos: ${Object.keys(D.contacts).join(', ')||'nenhum'}.
 Protocolos salvos: ${Object.keys(D.protocols).join(', ')||'nenhum'}.
 ${D.memories.length?'O que você sabe sobre o usuário:\n- '+D.memories.join('\n- '):''}
 ${(D.skills||[]).length?'Habilidades que o usuário te ensinou (siga sempre):\n- '+D.skills.join('\n- '):''}
+${msActive().length?'Missões em andamento do usuário (use para dar contexto quando ele falar delas):\n- '+msActive().slice(-3).map(p=>p.nome+' ('+msPct(p)+'%), próxima tarefa: '+msNext(p).t).join('\n- '):''}
+${fbPrompt()}
 ${codeMode?'MODO PROGRAMAÇÃO ATIVO: o usuário está programando (é iniciante). Explique em passos curtos e simples, mostre o código completo entre três crases, aponte o erro exato quando ele colar um código com problema, e diga em uma frase o que o código faz. Não leia o código em voz alta.':''}`;
 }
 const FALLBACK_MODELS=['gemini-flash-latest','gemini-flash-lite-latest','gemini-3.5-flash','gemini-3.5-flash-lite','gemini-3.1-flash-lite','gemini-pro-latest'];
@@ -1541,15 +1577,17 @@ let goodModel=null;
 let exhausted={};try{exhausted=JSON.parse(store.get('jv_exhausted','{}'))||{};}catch(e){exhausted={};}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function gemini(body,model){
-  const key=cfg.key;
-  const call=async m=>{
+  const key=store.get('jv_key','');
+  const call=async(m,direto)=>{
+    const via=!direto&&srvHas('gemini');
     const ctrl=new AbortController();const to=setTimeout(()=>ctrl.abort(),45000);
     let r;
-    try{r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(noFast[m]?body:{...body,generationConfig:{...(body.generationConfig||{}),thinkingConfig:{thinkingBudget:0}}}),signal:ctrl.signal});}
-    catch(err){const e=new Error(ctrl.signal.aborted?'demorou demais':'sem conexão');e.status=0;throw e;}
+    try{r=await fetch(via?srvUrl()+'/ai/gemini/'+encodeURIComponent(m):`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`,{method:'POST',headers:via?{'Content-Type':'application/json','X-Jarvis-Key':store.get('jv_srvkey','')}:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(noFast[m]?body:{...body,generationConfig:{...(body.generationConfig||{}),thinkingConfig:{thinkingBudget:0}}}),signal:ctrl.signal});}
+    catch(err){if(via&&key&&!ctrl.signal.aborted){clearTimeout(to);return call(m,true);}const e=new Error(ctrl.signal.aborted?'demorou demais':'sem conexão');e.status=0;throw e;}
     finally{clearTimeout(to);}
     const j=await r.json().catch(()=>({}));
-    if(!r.ok){if(r.status===400&&!noFast[m]&&/think|budget|generationConfig/i.test(j.error?.message||'')){noFast[m]=1;return call(m);}const e=new Error(j.error?.message||('HTTP '+r.status));e.status=r.status;throw e;}
+    if(via&&!r.ok&&srvOwnErr(r.status,j)){if(key)return call(m,true);const e=new Error('Servidor: '+j.erro);e.status=r.status===401?403:r.status;throw e;}
+    if(!r.ok){if(r.status===400&&!noFast[m]&&/think|budget|generationConfig/i.test(j.error?.message||'')){noFast[m]=1;return call(m,direto);}const e=new Error(j.error?.message||('HTTP '+r.status));e.status=r.status;throw e;}
     return j;
   };
   const userModel=store.get('jv_model','').trim();   // modelo escolhido à mão em CONFIG, se houver
@@ -1585,11 +1623,11 @@ async function gemini(body,model){
 /* ===== ATÉ 3 INTELIGÊNCIAS ESCOLHIDAS PELO USUÁRIO, com troca automática ===== */
 const AIP={gemini:{nome:'Gemini (Google)',ph:'AIza...'},groq:{nome:'Groq',base:'https://api.groq.com/openai/v1',ph:'gsk_...'},cerebras:{nome:'Cerebras',base:'https://api.cerebras.ai/v1',ph:'csk-...'},openrouter:{nome:'OpenRouter',base:'https://openrouter.ai/api/v1',ph:'sk-or-...'},mistral:{nome:'Mistral',base:'https://api.mistral.ai/v1',ph:'chave'},custom:{nome:'Outra (compatível com OpenAI)',base:'',ph:'chave'}};
 (function(){if(store.get('jv_ai1_prov','')!=='')return;let n=1;const put=(pv,k)=>{if(k&&n<=4){store.set('jv_ai'+n+'_prov',pv);store.set('jv_ai'+n+'_key',k);n++;}};put('gemini',store.get('jv_key',''));put('cerebras',store.get('jv_cerebras','').trim());put('groq',store.get('jv_groq','').trim());if(n===1)store.set('jv_ai1_prov','gemini');})();
-function aiSlots(){const o=[];for(let i=1;i<=4;i++){const prov=store.get('jv_ai'+i+'_prov',''),key=store.get('jv_ai'+i+'_key','').trim();if(!AIP[prov]||!key)continue;const base=(prov==='custom'?store.get('jv_ai'+i+'_url','').trim():AIP[prov].base||'').replace(/\/+$/,'').replace(/\/chat\/completions$/,'');if(prov!=='gemini'&&!/^https:\/\//.test(base))continue;o.push({n:i,prov,key,base,model:store.get('jv_ai'+i+'_model','').trim(),nome:prov==='custom'?'IA '+i:AIP[prov].nome.replace(/ \(.*/,'')});}return o;}
+function aiSlots(){const o=[];for(let i=1;i<=4;i++){const prov=store.get('jv_ai'+i+'_prov',''),key=store.get('jv_ai'+i+'_key','').trim();const via=prov!=='custom'&&srvHas(prov);if(!AIP[prov]||(!key&&!via))continue;const base=(prov==='custom'?store.get('jv_ai'+i+'_url','').trim():AIP[prov].base||'').replace(/\/+$/,'').replace(/\/chat\/completions$/,'');if(prov!=='gemini'&&!/^https:\/\//.test(base))continue;o.push({n:i,prov,key,via,base,model:store.get('jv_ai'+i+'_model','').trim(),nome:prov==='custom'?'IA '+i:AIP[prov].nome.replace(/ \(.*/,'')});}return o;}
 function aiSlotsLoad(){const box=$('aiSlots');if(!box)return;const st='width:100%;padding:10px;margin:4px 0;background:#02101a;color:#eafcff;border:1px solid var(--c);border-radius:8px;font:600 14px Rajdhani;box-sizing:border-box';let h='';
   for(let i=1;i<=4;i++){const pv=store.get('jv_ai'+i+'_prov','');h+='<div style="border:1px solid var(--c2);border-radius:10px;padding:8px;margin:8px 0"><b style="color:var(--c);font:700 12px Orbitron">IA '+i+(i===1?' · PRINCIPAL':' · RESERVA')+'</b><select id="aiP'+i+'" style="'+st+'"><option value="">— vazio —</option>'+Object.keys(AIP).map(k=>'<option value="'+k+'"'+(k===pv?' selected':'')+'>'+AIP[k].nome+'</option>').join('')+'</select><input id="aiK'+i+'" type="password" autocomplete="off" placeholder="Chave da API" style="'+st+'"><input id="aiU'+i+'" type="text" autocomplete="off" placeholder="Endereço da API (https://.../v1)" style="'+st+'"><input id="aiM'+i+'" type="text" autocomplete="off" placeholder="Modelo (deixe vazio = automático)" style="'+st+'"></div>';}
   box.innerHTML=h;
-  for(let i=1;i<=4;i++){$('aiK'+i).value=store.get('jv_ai'+i+'_key','');$('aiU'+i).value=store.get('jv_ai'+i+'_url','');$('aiM'+i).value=store.get('jv_ai'+i+'_model','');const up=()=>{const v=$('aiP'+i).value;$('aiU'+i).style.display=v==='custom'?'':'none';$('aiK'+i).style.display=$('aiM'+i).style.display=v?'':'none';$('aiK'+i).placeholder='Chave da API'+(AIP[v]?' ('+AIP[v].ph+')':'');};$('aiP'+i).onchange=up;up();}}
+  for(let i=1;i<=4;i++){$('aiK'+i).value=store.get('jv_ai'+i+'_key','');$('aiU'+i).value=store.get('jv_ai'+i+'_url','');$('aiM'+i).value=store.get('jv_ai'+i+'_model','');const up=()=>{const v=$('aiP'+i).value;$('aiU'+i).style.display=v==='custom'?'':'none';$('aiK'+i).style.display=$('aiM'+i).style.display=v?'':'none';$('aiK'+i).placeholder=(srvHas(v)?'Chave no servidor ✔ (pode deixar vazio)':'Chave da API'+(AIP[v]?' ('+AIP[v].ph+')':''));};$('aiP'+i).onchange=up;up();}}
 function aiSlotsSave(){let gk='';for(let i=1;i<=4;i++){if(!$('aiP'+i))return;const pv=$('aiP'+i).value,k=$('aiK'+i).value.trim();store.set('jv_ai'+i+'_prov',pv);store.set('jv_ai'+i+'_key',pv?k:'');store.set('jv_ai'+i+'_url',$('aiU'+i).value.trim());store.set('jv_ai'+i+'_model',$('aiM'+i).value.trim());if(pv==='gemini'&&k&&!gk)gk=k;}store.set('jv_key',gk);for(const k in xpModels)delete xpModels[k];for(const k in xpDown)delete xpDown[k];}
 const XPREF=[/gpt-oss-120b/,/llama-?3\.3-70b/,/qwen/,/llama.*70b/,/mistral-(medium|small)-latest/,/gpt-oss-20b/,/llama/,/mistral/];
 const xpModels={},xpDown={};let lastBrain='';
@@ -1612,9 +1650,17 @@ function toOAI(body){
   if(fd)out.tools=fd.map(d=>({type:'function',function:{name:d.name,description:d.description,parameters:lcT(d.parameters||{type:'object',properties:{}})}}));
   return out;
 }
+async function xpFetch(sl,what,opts){
+  const loc=()=>fetch(sl.base+(what==='chat'?'/chat/completions':'/models'),{...opts,headers:{...(opts.headers||{}),Authorization:'Bearer '+sl.key}});
+  if(!sl.via)return loc();
+  let r;try{r=await fetch(srvUrl()+'/ai/'+sl.prov+'/'+what,{...opts,headers:{...(opts.headers||{}),'X-Jarvis-Key':store.get('jv_srvkey','')}});}
+  catch(e){if(sl.key&&!(opts.signal&&opts.signal.aborted))return loc();throw e;}
+  if(!r.ok&&sl.key){let j=null;try{j=await r.clone().json();}catch(e){}if(srvOwnErr(r.status,j))return loc();}
+  return r;
+}
 async function xpList(sl){
   if(sl.model)return [sl.model];const ck=sl.n+sl.base;if(xpModels[ck])return xpModels[ck];let ids=[];
-  try{const r=await fetch(sl.base+'/models',{headers:{Authorization:'Bearer '+sl.key}});if(r.ok){const j=await r.json();ids=(j.data||j.models||[]).map(x=>x.id).filter(x=>x&&!/whisper|guard|tts|orpheus|embed|compound|allam|moderation|ocr|image|audio/i.test(x));}}catch(e){}
+  try{const r=await xpFetch(sl,'models',{});if(r.ok){const j=await r.json();ids=(j.data||j.models||[]).map(x=>x.id).filter(x=>x&&!/whisper|guard|tts|orpheus|embed|compound|allam|moderation|ocr|image|audio/i.test(x));}}catch(e){}
   if(sl.prov==='openrouter')ids=ids.filter(x=>/:free$/.test(x));
   const rank=[];for(const re of XPREF)for(const m of ids)if(re.test(m)&&!rank.includes(m))rank.push(m);
   if(ids.length&&!rank.length)rank.push(...ids.slice(0,3));
@@ -1627,9 +1673,9 @@ async function xpCall(sl,body){
     const dk=sl.n+sl.base+m;if(xpDown[dk]>Date.now())continue;
     const ctrl=new AbortController(),to=setTimeout(()=>ctrl.abort(),25000);
     try{
-      const r=await fetch(sl.base+'/chat/completions',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+sl.key},body:JSON.stringify({...oai,model:m}),signal:ctrl.signal});
+      const r=await xpFetch(sl,'chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...oai,model:m}),signal:ctrl.signal});
       const j=await r.json().catch(()=>({}));
-      if(!r.ok){const e=new Error(sl.nome+': '+(j.error?.message||j.message||('HTTP '+r.status)));e.status=r.status;xpDown[dk]=Date.now()+(r.status===404?3600e3:r.status===429||r.status===413?60e3:20e3);last=e;if(r.status===401||r.status===403)break;continue;}
+      if(!r.ok){const e=new Error(sl.nome+': '+(j.error?.message||j.message||j.erro||('HTTP '+r.status)));e.status=r.status;xpDown[dk]=Date.now()+(r.status===404?3600e3:r.status===429||r.status===413?60e3:20e3);last=e;if(r.status===401||r.status===403)break;continue;}
       const msg=j.choices?.[0]?.message||{},parts=[];
       const ct=typeof msg.content==='string'?msg.content:Array.isArray(msg.content)?msg.content.map(c=>c.text||'').join(''):'';
       if(ct)parts.push({text:ct});
@@ -1643,14 +1689,67 @@ async function xpCall(sl,body){
 }
 function hasBrain(){return aiSlots().length>0;}
 function brainOrder(){return aiSlots();}
+let aiStat={};try{aiStat=JSON.parse(store.get('jv_aistat','{}'))||{};}catch(e){aiStat={};}
+let brainNote='';
+function aiSt(sl){const k=sl.n+':'+sl.prov;if(!aiStat[k])aiStat[k]={req:0,ok:0,fail:0,lim:0,ms:0,err:'',code:0,at:0,limAt:0};return aiStat[k];}
+function aiStSave(){try{store.set('jv_aistat',JSON.stringify(aiStat));}catch(e){}}
+async function slotCall(sl,body){
+  const st=aiSt(sl),t0=Date.now();st.req++;
+  try{const j=sl.prov==='gemini'?await gemini(body,sl.model||undefined):await xpCall(sl,body);st.ok++;st.ms=Date.now()-t0;st.err='';st.code=200;st.at=Date.now();return j;}
+  catch(e){st.fail++;st.code=e.status||0;st.err=(e.message||'falha').slice(0,160);st.at=Date.now();if(e.status===429){st.lim++;st.limAt=Date.now();}throw e;}
+  finally{aiStSave();}
+}
+function aiWhy(e){return e.status===429?'no limite do provedor':e.status===401||e.status===403?'chave recusada':e.status===402?'sem saldo':e.status===0?'sem conexão':e.status>=500?'servidor instável':'erro '+(e.status||'')}
 async function brain(body){
-  const order=aiSlots();let last,lim=null;
+  const order=aiSlots();let last,lim=null;const falhas=[];
   for(let i=0;i<order.length;i++){const sl=order[i];
-    try{const j=sl.prov==='gemini'?await gemini(body,sl.model||undefined):await xpCall(sl,body);lastBrain=sl.nome;return j;}
-    catch(e){last=e;if(e.status===429)lim=e;if(i<order.length-1)setStatus('TROCANDO DE NÚCLEO...');}
+    try{const j=await slotCall(sl,body);lastBrain=sl.nome;if(falhas.length)brainNote='RESPONDIDO POR '+sl.nome.toUpperCase()+' ('+falhas.join('; ')+')';return j;}
+    catch(e){last=e;if(e.status===429)lim=e;falhas.push(sl.nome+' '+aiWhy(e));if(i<order.length-1)setStatus('TROCANDO DE NÚCLEO...');}
   }
   throw (lim&&order.length>1?lim:last)||Object.assign(new Error('sem chave'),{status:403});
 }
+// ---- uso direto / comparação / colaboração entre as IAs ----
+const AI_SYS=()=>'Você é J.A.R.V.I.S., assistente do usuário "'+cfg.name+'". Responda em português do Brasil, direto e curto (até 4 frases), sem markdown. Data: '+new Date().toLocaleDateString('pt-BR')+'.';
+async function askSlot(sl,q,sys){const j=await slotCall(sl,{systemInstruction:{parts:[{text:sys||AI_SYS()}]},contents:[{role:'user',parts:[{text:q}]}]});return pTxt(j.candidates?.[0]?.content||{}).trim();}
+function findSlot(x){const sl=aiSlots();x=norm(x);const m=x.match(/([1-4])/);if(/^ia/.test(x)&&m)return sl.find(s=>s.n===parseInt(m[1]))||null;return sl.find(s=>s.prov===x)||sl.find(s=>norm(s.nome).includes(x))||null;}
+async function askAll(q){const sl=aiSlots();const rs=await Promise.all(sl.map(s=>askSlot(s,q).then(t=>({s,t:t||'(resposta vazia)',ok:!!t})).catch(e=>({s,t:aiWhy(e),ok:false}))));return rs;}
+async function aiCompare(q){
+  const sl=aiSlots();if(sl.length<2){await say('Preciso de pelo menos duas IAs configuradas para comparar, '+cfg.name+'.');return;}
+  hud.classList.add('thinking');setStatus('CONSULTANDO '+sl.length+' IAs...');const rs=await askAll(q);hud.classList.remove('thinking');setStatus();
+  rs.forEach(r=>add('【'+r.s.nome+' · IA '+r.s.n+'】 '+(r.ok?r.t:'não respondeu: '+r.t),'jv'));
+  const ok=rs.filter(r=>r.ok).length;await speak(ok?ok+' de '+rs.length+' inteligências responderam, '+cfg.name+'. As respostas estão na tela.':'Nenhuma das inteligências respondeu agora.');
+}
+async function aiCouncil(q){
+  const sl=aiSlots();if(sl.length<2){await say('Preciso de pelo menos duas IAs configuradas para o modo conselho, '+cfg.name+'.');return;}
+  hud.classList.add('thinking');setStatus('CONSELHO: '+sl.length+' IAs ANALISANDO...');const rs=(await askAll(q)).filter(r=>r.ok);
+  if(!rs.length){hud.classList.remove('thinking');setStatus();await say('Nenhuma das inteligências respondeu agora, '+cfg.name+'.');return;}
+  toolNote('CONSELHO: '+rs.map(r=>r.s.nome).join(' + '));
+  let fim=rs[0].t;
+  if(rs.length>1){setStatus('CONSOLIDANDO...');
+    const p='Pergunta do usuário: '+q+'\n\n'+rs.map(r=>'Resposta de '+r.s.nome+': '+r.t).join('\n\n')+'\n\nCompare as respostas acima, descarte o que estiver errado ou contraditório e escreva UMA resposta final, correta e curta (até 4 frases). Se elas discordarem em algo importante, diga isso em uma frase.';
+    try{const j=await brain({systemInstruction:{parts:[{text:AI_SYS()}]},contents:[{role:'user',parts:[{text:p}]}]});fim=pTxt(j.candidates?.[0]?.content||{}).trim()||fim;}catch(e){}}
+  hud.classList.remove('thinking');setStatus();await say(fim);
+}
+function aiClearWaits(){for(const k in exhausted)delete exhausted[k];store.set('jv_exhausted','{}');for(const k in xpDown)delete xpDown[k];goodModel=null;}
+function aiHubRender(){
+  const sl=aiSlots(),now=Date.now();const b=$('aihubBody');if(!b)return;
+  if(!sl.length){b.innerHTML='<p>Nenhuma IA configurada. Coloque as chaves em CONFIG.</p>';return;}
+  const esc=x=>String(x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const gWait=Object.values(exhausted).filter(v=>v>now).length;
+  b.innerHTML=sl.map((s,i)=>{const st=aiSt(s);
+    const wait=s.prov==='gemini'?gWait:Object.keys(xpDown).filter(k=>k.indexOf(s.n+s.base)===0&&xpDown[k]>now).length;
+    const estado=!st.at?'⚪ ainda não usada':st.code===200?'🟢 funcionando':st.code===429?'🟠 no limite do provedor':st.code===401||st.code===403?'🔴 chave recusada':st.code===402?'🔴 sem saldo':st.code===0?'🟠 sem conexão':'🟠 erro '+st.code;
+    return '<div style="border:1px solid var(--c2);border-radius:10px;padding:8px;margin:8px 0;font:600 14px Rajdhani"><b style="color:var(--c);font:700 12px Orbitron">IA '+s.n+' · '+esc(s.nome)+(i===0?' · PRINCIPAL':'')+'</b><br>'+estado+'<br>Chave: '+(s.via?'no servidor ☁'+(s.key?' (reserva no celular)':''):'no celular')+
+      '<br>Modelo: '+esc(s.model||(s.prov==='gemini'?(goodModel||'automático'):(xpModels[s.n+s.base]&&xpModels[s.n+s.base][0])||'automático'))+
+      '<br>Pedidos: '+st.req+' · certos: '+st.ok+' · falhas: '+st.fail+' · limite atingido: '+st.lim+'x'+
+      '<br>Última resposta: '+(st.ms?st.ms+' ms':'—')+(st.at?' · '+new Date(st.at).toLocaleTimeString('pt-BR'):'')+
+      (wait?'<br>Em espera: '+wait+' modelo(s) aguardando o provedor liberar':'')+
+      (st.err?'<br><span style="opacity:.75">Último erro: '+esc(st.err)+'</span>':'')+'</div>';}).join('')+
+    '<p>Limite interno do Jarvis: <b>nenhum</b>. Cotas, cobrança e saldo são de cada provedor e aparecem aqui quando ele recusa um pedido.</p>';
+}
+function openAiHub(){$('cfg').classList.remove('open');aiHubRender();$('aihub').classList.add('open');}
+async function aiHubTest(){const sl=aiSlots();const b=$('aihubTest');b.disabled=true;b.textContent='TESTANDO…';
+  await Promise.all(sl.map(s=>askSlot(s,'Responda apenas: ok','Responda só com a palavra ok.').catch(()=>{})));b.disabled=false;b.textContent='⚡ TESTAR TODAS';aiHubRender();}
 async function fetchJSON(url){
   const ctrl=new AbortController();const to=setTimeout(()=>ctrl.abort(),9000);
   try{const r=await fetch(url,{signal:ctrl.signal});if(!r.ok)throw new Error('HTTP '+r.status);return await r.json();}
@@ -1688,7 +1787,7 @@ async function ai(c){
   trimHistory();const startLen=history.length;
   history.push({role:'user',parts:[{text:c}]});
   hud.classList.add('thinking');sfx('think');setStatus('PROCESSANDO...');
-  let finalText='',errLink=null;searchFallbackLink=null;pendingImg=null;
+  let finalText='',errLink=null;searchFallbackLink=null;pendingImg=null;brainNote='';
   try{
     for(let step=0;step<8;step++){
       const j=await brain({systemInstruction:{parts:[{text:systemPrompt()}]},contents:history,tools:[{functionDeclarations:DECL}]});
@@ -1718,7 +1817,8 @@ async function ai(c){
   hud.classList.remove('thinking');setStatus();
   const nav=pendingNav;pendingNav=null;
   const span=add(finalText,'jv',nav||errLink||searchFallbackLink);
-  flushImg();
+  flushImg();if(brainNote){toolNote(brainNote);brainNote='';}
+  if(finalText&&!errLink){lastQA={q:c,a:finalText};fbButtons(span,c,finalText);}
   await speak(finalText);
   if(nav){try{location.href=nav.url;}catch(e){}}
 }
@@ -1787,6 +1887,17 @@ function addReminder(sec,text,kind){const r={id:Date.now()+''+Math.floor(Math.ra
 async function quick(c){
   {const mu=c.match(/instalar habilidade\s+(https:\/\/\S+)/i);if(mu){await installSkill(mu[1]);return true;}}
   const t=norm(c).replace(/^jarvis[, ]*/,'').replace(/[.!?]+$/,'');
+  // ----- central das IAs: painel, uso direto, comparação, conselho -----
+  if(/^(abrir |abre |mostrar |mostra )?(painel|central|status|estado|saude|monitor)( das| dos| de)? ?(ias?|inteligencias|nucleos|provedores)$/.test(t)){openAiHub();const sl=aiSlots();await say(sl.length+' '+(sl.length===1?'inteligência configurada':'inteligências configuradas')+', '+cfg.name+'. Abri a central.');return true;}
+  if(/^(liberar|resetar|limpar|zerar)( os| as)? ?(limites|esperas)( das ias| das inteligencias)?$/.test(t)){aiClearWaits();await say('Esperas limpas, '+cfg.name+'. Vou tentar todas as inteligências de novo. Se o provedor ainda estiver no limite, ele mesmo recusa.');return true;}
+  {const cq=c.replace(/^jarvis[, ]*/i,'').trim();let m;
+   if((m=cq.match(/^compar(?:a|e|ar)\s+(?:as\s+)?(?:ias?|intelig[eê]ncias|respostas)\s*[:,-]?\s*(.{3,})$/i))){await aiCompare(m[1]);return true;}
+   if((m=cq.match(/^(?:modo\s+)?(?:conselho|colabora[cç][aã]o)\s*[:,-]?\s*(.{3,})$/i))||(m=cq.match(/^pergunt(?:a|e|ar)\s+(?:pra|para|a|às|as)\s+todas(?:\s+as\s+(?:ias?|intelig[eê]ncias))?\s*[:,-]?\s*(.{3,})$/i))){await aiCouncil(m[1]);return true;}
+   if((m=cq.match(/^(?:pergunt(?:a|e|ar)|us(?:a|e|ar)|responde(?:r)?\s+com)\s+(?:pra|para|a|o|ao|à|pro)?\s*(ia\s*[1-4]|gemini|groq|cerebras|openrouter|open router|mistral)\s*[:,-]?\s*(.{3,})$/i))){
+     const s2=findSlot(m[1].replace(/\s+/g,m[1].toLowerCase().startsWith('ia')?'':' ').replace(/open ?router/i,'openrouter'));
+     if(!s2){await say('Essa inteligência não está configurada, '+cfg.name+'.');return true;}
+     hud.classList.add('thinking');setStatus('CONSULTANDO '+s2.nome.toUpperCase()+'...');let r,er;try{r=await askSlot(s2,m[2]);}catch(e){er=e;}hud.classList.remove('thinking');setStatus();
+     if(er)await say(s2.nome+' não respondeu: '+aiWhy(er)+'.');else{toolNote('RESPONDIDO POR '+s2.nome.toUpperCase());await say(r||'Ela respondeu vazio, '+cfg.name+'.');}return true;}}
   // ----- aprender/gerir comandos personalizados -----
   {let m=t.match(/^quando eu falar (.+?) (responda|responde|fale|diga|fala) (.+)$/);
    if(m){D.custom.push({trigger:m[1].trim(),type:'say',value:m[3].trim()});save();await say('Comando aprendido, '+cfg.name+'. Quando você disser "'+m[1].trim()+'", eu respondo isso.');return true;}
@@ -1827,6 +1938,17 @@ async function quick(c){
    m=t.match(/^(?:resumo|resumo do dia|resumo matinal)(?: automatico| matinal)?(?: todo dia| todos os dias| diario)? as (\d{1,2})(?:(?: e |:|h| horas e )(\d{1,2}))?(?: horas| h)?(?: da manha| todo dia| todos os dias)?$/);
    if(m){if(!digestOK()){await say('O resumo automático precisa do app nativo 2.3, '+cfg.name+'. Instale o APK novo.');return true;}const hh=Math.min(23,parseInt(m[1])),mm=Math.min(59,parseInt(m[2]||'0'));store.set('jv_digest',hh+':'+mm);scheduleDigest();await say('Combinado, '+cfg.name+'. Todo dia às '+hh+' e '+('0'+mm).slice(-2)+' eu falo o resumo do dia sozinho.'+(wakeMode?'':' Deixe a Escuta contínua ligada para funcionar com o app fechado.'));return true;}
    if(/^(desativar|desligar|cancelar|parar) (o )?resumo (automatico|matinal|diario)$/.test(t)){store.set('jv_digest','');scheduleDigest();await say('Resumo automático desativado, '+cfg.name+'.');return true;}
+   if(/^(auto ?diagnostico|diagnostico( completo| geral| do jarvis| dos sistemas)?|verificar sistemas|checar sistemas)$/.test(t)){const pr=await openDiag();await say(pr.length?'Diagnóstico concluído, '+cfg.name+'. Encontrei '+pr.length+(pr.length===1?' ponto de atenção: ':' pontos de atenção: ')+pr.join('; ')+'.':'Diagnóstico concluído, '+cfg.name+'. Todos os sistemas operacionais.');return true;}
+   if(/^(abrir |abre |mostrar |mostra )?(mission control|controle de missoes|(minhas |as )?missoes|(meus |os )?projetos)$/.test(t)){openMission();await say(msReport());return true;}
+   if(/^(progresso|status|andamento)( das| dos| da| do)? ?(missoes|missao|projetos|projeto)$/.test(t)){await say(msReport());return true;}
+   {const rawc=c.replace(/^jarvis[, ]*/i,'').replace(/[.!?]+$/,'');let m=rawc.match(/^(?:nova miss[aã]o|miss[aã]o|novo projeto|criar? (?:um )?plano (?:para|pra|de)|planejar?|planeja)\s*[:,-]?\s*(.{4,})$/i);
+    if(m){const r=await missionCreate(m[1]);if(!r){await say('Não entendi o objetivo, '+cfg.name+'.');return true;}openMission();await say('Missão criada, '+cfg.name+': '+r.p.tarefas.length+(r.p.tarefas.length===1?' tarefa':' tarefas')+(r.semIA?' (sem IA disponível agora, então deixei só o objetivo)':'')+'. Primeira: '+r.p.tarefas[0].t+'.');return true;}}
+   if(/^(proxima tarefa|qual a proxima tarefa|o que falta fazer)$/.test(t)){const a=msActive();if(!a.length){await say('Nenhuma missão em andamento, '+cfg.name+'.');return true;}const p=a[a.length-1];await say('Em '+p.nome+', a próxima tarefa é: '+msNext(p).t+'.');return true;}
+   if(/^(tarefa concluida|conclui a tarefa|terminei a tarefa|tarefa feita|concluir tarefa)$/.test(t)){const a=msActive();if(!a.length){await say('Nenhuma missão em andamento, '+cfg.name+'.');return true;}const p=a[a.length-1];const x=msNext(p);x.ok=true;save();msRender();const n=msNext(p);await say('Marcado: '+x.t+'. '+(n?'Próxima: '+n.t+'.':'Missão '+p.nome+' concluída, '+cfg.name+'.'));return true;}
+   if(/^(boa resposta|gostei( da resposta)?|resposta boa|mandou bem)$/.test(t)){if(!lastQA){await say('Ainda não tenho uma resposta para avaliar, '+cfg.name+'.');return true;}fbSave(lastQA.q,lastQA.a,true);await say('Anotado, '+cfg.name+'.');return true;}
+   if(/^(resposta ruim|nao gostei( da resposta)?|resposta errada|errou)$/.test(t)){if(!lastQA){await say('Ainda não tenho uma resposta para avaliar, '+cfg.name+'.');return true;}fbSave(lastQA.q,lastQA.a,false);await say('Anotado, '+cfg.name+'. Vou evitar repetir isso.');return true;}
+   if(/^(relatorio de evolucao|evolucao do jarvis|minhas avaliacoes)$/.test(t)){await evolutionReport();return true;}
+   if(/^(historico de pesquisas?|pesquisas anteriores|ultimas pesquisas)$/.test(t)){const l=D.searches||[];if(!l.length){await say('Nenhuma pesquisa profunda salva ainda, '+cfg.name+'.');return true;}l.slice(-5).forEach(x=>add('🔎 '+x.q+' ('+new Date(x.t).toLocaleDateString('pt-BR')+'): '+x.r,'jv'));await speak('Suas últimas '+Math.min(5,l.length)+' pesquisas estão na tela, '+cfg.name+'.');return true;}
    if(/^(developer core|central de codigo|abrir codigo|assistente de programacao|modo desenvolvedor)$/.test(t)){openDev();await say('Developer Core aberto, '+cfg.name+'. Cole o código e escolha o que fazer.');return true;}
   {let m=t.match(/^(?:gerar|criar|faz(?:er)?|escrever?) (?:um |uma )?(?:codigo|programa|script|funcao|função) (?:que |para |pra |de )(.+)$/);if(m){openDev();$('devIn').value='';await devRun('gen',m[1]);return true;}}
   if(/^(modo programacao|modo programador|modo codigo de ajuda|ativar modo programacao|me ajuda a programar)$/.test(t)){codeMode=true;store.set('jv_code','1');await say('Modo programação ativado, '+cfg.name+'. Escreva ou cole o código na caixa de texto que eu explico e corrijo. O código aparece na tela.');return true;}
@@ -2071,23 +2193,25 @@ $('voiceBtn').addEventListener('click',e=>{voiceOn=!voiceOn;store.set('jv_voice'
 function showRange(){ $('pitchV').textContent='('+$('pitchIn').value+')';$('rateV').textContent='('+$('rateIn').value+')';}
 $('pitchIn').addEventListener('input',showRange);$('rateIn').addEventListener('input',showRange);
 $('cfgBtn').addEventListener('click',()=>{
-  aiSlotsLoad();$('nameIn').value=store.get('jv_name','');$('cityIn').value=cfg.city;$('macIn').value=store.get('jv_tvmac','');$('modelIn').value=store.get('jv_model','');$('srvIn').value=store.get('jv_srv','');$('srvKeyIn').value=store.get('jv_srvkey','');srvShow();
+  aiSlotsLoad();$('nameIn').value=store.get('jv_name','');$('cityIn').value=cfg.city;$('macIn').value=store.get('jv_tvmac','');$('modelIn').value=store.get('jv_model','');$('srvIn').value=store.get('jv_srv','');$('srvKeyIn').value=store.get('jv_srvkey','');$('srvAiIn').checked=store.get('jv_srvai','0')==='1';srvShow();
   $('pitchIn').value=cfg.pitch;$('rateIn').value=cfg.rate;$('wakeIn').checked=wakeMode;$('handsfreeIn').checked=handsfree;$('homeIn').checked=store.get('jv_home','orb')==='panel';$('briefIn').checked=store.get('jv_briefing','1')==='1';$('soundsIn').checked=soundsOn;$('shakeIn').checked=shakeOn;$('clapIn').checked=clapGet();$('lockIn').checked=lockOn;$('lockPhraseIn').value=lockPhrase;$('voiceOnlyIn').checked=voiceOnly;$('btIn').checked=btMode;try{$('ghostIn').checked=(NATIVE&&NATIVE.getVoiceGhost)?NATIVE.getVoiceGhost():true;}catch(e){$('ghostIn').checked=true;}try{$('dialogIn').checked=(NATIVE&&NATIVE.getVoiceDialog)?NATIVE.getVoiceDialog():false;}catch(e){$('dialogIn').checked=false;}showRange();$('cfg').classList.add('open');
 });
 $('cfgClose').addEventListener('click',()=>$('cfg').classList.remove('open'));
-function srvShow(m){const ct=parseInt(store.get('jv_cloud_t','0'))||0;$('srvState').textContent=m||(cloudOn()?(ct?'conectada · última sincronização '+new Date(ct).toLocaleString('pt-BR'):'configurada, ainda sem sincronizar'):'não configurada');}
+$('missionBtn').addEventListener('click',openMission);$('msClose').addEventListener('click',()=>$('mission').classList.remove('open'));$('msNew').addEventListener('click',async()=>{const g=$('msIn').value.trim();if(!g)return;$('msNew').disabled=true;$('msNew').textContent='PLANEJANDO…';try{await missionCreate(g);$('msIn').value='';}finally{$('msNew').disabled=false;$('msNew').textContent='CRIAR PLANO';}});$('msBody').addEventListener('click',e=>{const d=e.target.closest('[data-del]');if(d){D.projects.splice(parseInt(d.dataset.del),1);save();msRender();return;}const k=e.target.closest('.msTask');if(k)msToggle(parseInt(k.dataset.p),parseInt(k.dataset.k));});$('diagBtn').addEventListener('click',()=>{openDiag();});$('diagRun').addEventListener('click',()=>{selfDiag();});$('diagClose').addEventListener('click',()=>$('diag').classList.remove('open'));$('aihubBtn').addEventListener('click',openAiHub);$('aihubClose').addEventListener('click',()=>$('aihub').classList.remove('open'));$('aihubTest').addEventListener('click',aiHubTest);$('aihubReset').addEventListener('click',()=>{aiClearWaits();aiHubRender();});
+function srvShow(m){try{const l=srvIas();$('srvIasState').textContent=l.length?l.join(', '):'nenhuma ainda';}catch(e){}const ct=parseInt(store.get('jv_cloud_t','0'))||0;$('srvState').textContent=m||(cloudOn()?(ct?'conectada · última sincronização '+new Date(ct).toLocaleString('pt-BR'):'configurada, ainda sem sincronizar'):'não configurada');}
 $('srvTest').addEventListener('click',async()=>{
   store.set('jv_srv',$('srvIn').value.trim());store.set('jv_srvkey',$('srvKeyIn').value.trim());
   if(!cloudOn()){srvShow('preencha o endereço e a senha');return;}
   srvShow('testando…');
-  try{const r=await fetch(srvUrl()+'/');const j=await r.json();if(!j.ok||!j.kv||!j.senha){srvShow('servidor respondeu, mas falta '+(!j.kv?'ligar o KV (MEM)':'criar o secret SENHA'));return;}}
+  store.set('jv_srvai',$('srvAiIn').checked?'1':'0');
+  try{const j=await srvInfo();if(!j.ok||!j.kv||!j.senha){srvShow('servidor respondeu, mas falta '+(!j.kv?'ligar o KV (MEM)':'criar o secret SENHA'));return;}}
   catch(e){srvShow('não achei o servidor — confira o endereço');return;}
   const p=await cloudPull(false);if(!p.ok){srvShow('erro: '+p.msg);return;}
   if(p.restaurado){srvShow('memória restaurada da nuvem — reiniciando');setTimeout(()=>location.reload(),1200);return;}
-  const u=await cloudPush();srvShow(u.ok?'✔ funcionando · '+cloudCount()+' itens salvos na nuvem':'erro: '+u.msg);
+  const u=await cloudPush();srvShow(u.ok?'✔ funcionando · '+cloudCount()+' itens salvos na nuvem'+($('srvAiIn').checked?' · IAs no servidor: '+(srvIas().length||'nenhuma'):''):'erro: '+u.msg);
 });
 $('cfgSave').addEventListener('click',()=>{
-  aiSlotsSave();store.set('jv_name',$('nameIn').value.trim());store.set('jv_city',$('cityIn').value.trim());store.set('jv_tvmac',$('macIn').value.trim().toUpperCase());{const a=store.get('jv_srv','')+'|'+store.get('jv_srvkey','');store.set('jv_srv',$('srvIn').value.trim());store.set('jv_srvkey',$('srvKeyIn').value.trim());if(a!==store.get('jv_srv','')+'|'+store.get('jv_srvkey',''))setTimeout(cloudStart,300);}
+  aiSlotsSave();store.set('jv_name',$('nameIn').value.trim());store.set('jv_city',$('cityIn').value.trim());store.set('jv_tvmac',$('macIn').value.trim().toUpperCase());{const a=store.get('jv_srv','')+'|'+store.get('jv_srvkey','');store.set('jv_srv',$('srvIn').value.trim());store.set('jv_srvkey',$('srvKeyIn').value.trim());store.set('jv_srvai',$('srvAiIn').checked?'1':'0');if(a!==store.get('jv_srv','')+'|'+store.get('jv_srvkey',''))setTimeout(cloudStart,300);}
   store.set('jv_model',$('modelIn').value.trim());store.set('jv_pitch',$('pitchIn').value);store.set('jv_rate',$('rateIn').value);
   wakeMode=$('wakeIn').checked;store.set('jv_wake',wakeMode?'1':'0');
   handsfree=$('handsfreeIn').checked;store.set('jv_handsfree',handsfree?'1':'0');store.set('jv_home',$('homeIn').checked?'panel':'orb');store.set('jv_briefing',$('briefIn').checked?'1':'0');soundsOn=$('soundsIn').checked;store.set('jv_sounds',soundsOn?'1':'0');shakeOn=$('shakeIn').checked;store.set('jv_shake',shakeOn?'1':'0');
@@ -2459,6 +2583,78 @@ async function cyPriv(){
   await say(total?('Encontrei '+total+' app'+(total>1?'s':'')+' com poderes especiais, '+cfg.name+'. '+(acc.length?'Acessibilidade consegue ler e tocar sua tela — revise se você reconhece todos. ':'')+(adm.length?'Tem app com admin de dispositivo. ':'')+'Veja a lista na tela.'):'Nenhum app com poderes especiais fora do normal, '+cfg.name+'. Está limpo.');
 }
 // ===== DEVELOPER CORE — assistente de código =====
+// ---- erros de execução (para o autodiagnóstico) ----
+let jsErrs=[];try{jsErrs=JSON.parse(store.get('jv_errs','[]'))||[];}catch(e){jsErrs=[];}
+function logErr(m){try{jsErrs.push({m:String(m).slice(0,140),t:Date.now()});jsErrs=jsErrs.slice(-8);store.set('jv_errs',JSON.stringify(jsErrs));}catch(e){}}
+window.addEventListener('error',e=>logErr(e.message||'erro'));window.addEventListener('unhandledrejection',e=>logErr((e.reason&&e.reason.message)||e.reason||'promessa rejeitada'));
+const escH=x=>String(x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+// ---- MISSION CONTROL: objetivos divididos em tarefas ----
+function msPct(p){return p.tarefas.length?Math.round(p.tarefas.filter(x=>x.ok).length*100/p.tarefas.length):0;}
+function msNext(p){return p.tarefas.find(x=>!x.ok)||null;}
+function msActive(){return (D.projects||[]).filter(p=>msPct(p)<100);}
+function msRender(){const b=$('msBody');if(!b)return;const l=D.projects||[];
+  if(!l.length){b.innerHTML='<p>Nenhuma missão ainda.</p>';return;}
+  b.innerHTML=l.map((p,i)=>'<div class="cyCard"><h4>'+escH(p.nome)+' · '+msPct(p)+'%</h4><div class="msBar"><i style="width:'+msPct(p)+'%"></i></div>'+
+    p.tarefas.map((x,k)=>'<div class="msTask'+(x.ok?' ok':'')+'" data-p="'+i+'" data-k="'+k+'"><b>'+(x.ok?'☑':'☐')+'</b><span>'+escH(x.t)+'</span></div>').join('')+
+    '<div class="row"><button class="btn ghost" data-del="'+i+'">APAGAR MISSÃO</button></div></div>').join('');}
+function openMission(){$('cfg').classList.remove('open');msRender();$('mission').classList.add('open');}
+async function missionCreate(goal){
+  goal=(goal||'').trim();if(goal.length<3)return null;
+  let tarefas=[];
+  if(hasBrain()){toolNote('MISSION CONTROL · PLANEJANDO');
+    try{const j=await brain({contents:[{role:'user',parts:[{text:'Divida este objetivo em 4 a 8 tarefas práticas, curtas e em ordem de execução, para um iniciante. Objetivo: "'+goal+'". Responda SOMENTE com um array JSON de strings em português do Brasil, sem texto antes ou depois.'}]}]});
+      const tx=pTxt(j.candidates?.[0]?.content||{});const m=tx.match(/\[[\s\S]*\]/);
+      if(m)tarefas=JSON.parse(m[0]).filter(x=>typeof x==='string'&&x.trim()).slice(0,10).map(x=>({t:x.trim().slice(0,160),ok:false}));}catch(e){}}
+  const semIA=!tarefas.length;if(semIA)tarefas=[{t:goal,ok:false}];
+  const p={id:Date.now(),nome:goal.slice(0,80),criado:Date.now(),tarefas};
+  D.projects=(D.projects||[]).concat([p]).slice(-12);save();msRender();return {p,semIA};
+}
+function msToggle(i,k){const p=(D.projects||[])[i];if(!p||!p.tarefas[k])return;p.tarefas[k].ok=!p.tarefas[k].ok;save();msRender();}
+function msReport(){const l=D.projects||[];if(!l.length)return 'Nenhuma missão registrada, '+cfg.name+'.';
+  return l.slice(-4).map(p=>{const n=msNext(p);return p.nome+': '+msPct(p)+' por cento'+(n?', próxima tarefa: '+n.t:', concluída');}).join('. ')+'.';}
+// ---- FEEDBACK / EVOLUÇÃO ----
+let lastQA=null;
+function fbSave(q,a,ok){const a2=a.slice(0,300),q2=q.slice(0,200);D.feedback=(D.feedback||[]).filter(f=>!(f.q===q2&&f.a===a2));D.feedback.push({q:q2,a:a2,ok:!!ok,t:Date.now()});D.feedback=D.feedback.slice(-40);save();}
+function fbButtons(span,q,a){try{const d=span&&span.parentNode;if(!d||!q||!a)return;const r=document.createElement('div');r.className='fbRow';
+  const mk=(lb,ok)=>{const b=document.createElement('button');b.textContent=lb;b.addEventListener('click',()=>{fbSave(q,a,ok);r.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');});return b;};
+  r.appendChild(mk('👍',true));r.appendChild(mk('👎',false));d.appendChild(r);}catch(e){}}
+function fbPrompt(){const bad=(D.feedback||[]).filter(f=>!f.ok).slice(-4);if(!bad.length)return '';
+  return 'O usuário REPROVOU estas respostas suas; não repita o mesmo erro ou estilo:\n'+bad.map(f=>'- Pergunta: "'+f.q+'" → resposta reprovada: "'+f.a.slice(0,140)+'"').join('\n');}
+async function evolutionReport(){const f=D.feedback||[];if(!f.length){await say('Ainda não tenho avaliações, '+cfg.name+'. Toque no joinha ou no negativo embaixo das minhas respostas.');return;}
+  const ok=f.filter(x=>x.ok).length,bad=f.length-ok;let extra='';
+  if(bad&&hasBrain()){try{const j=await brain({contents:[{role:'user',parts:[{text:'Estas respostas de um assistente foram reprovadas pelo usuário. Em UMA frase curta em português do Brasil, diga o padrão do que ele não gosta e o que o assistente deve mudar. Não invente.\n'+f.filter(x=>!x.ok).slice(-8).map(x=>'Pergunta: '+x.q+' | Resposta: '+x.a).join('\n')}]}]});extra=pTxt(j.candidates?.[0]?.content||{}).trim();}catch(e){}}
+  await say('Relatório de evolução, '+cfg.name+': '+f.length+' respostas avaliadas, '+ok+' aprovadas e '+bad+' reprovadas. '+extra);}
+// ---- AUTODIAGNÓSTICO ----
+async function selfDiag(){
+  const prob=[],now=Date.now();const cards=[];
+  const nat=!!NATIVE;const has=fn=>nat&&typeof NATIVE[fn]==='function';
+  cards.push(cyCard('SISTEMA',[['Versão do site',JV_VERSION],['App nativo',nat?'conectado':'não (rodando no navegador)',nat?'':'warn'],['Internet',navigator.onLine?'online':'OFFLINE',navigator.onLine?'':'bad']]));
+  if(!navigator.onLine)prob.push('sem internet');
+  const sl=aiSlots();
+  if(!sl.length)prob.push('nenhuma IA configurada');
+  cards.push(cyCard('INTELIGÊNCIAS ('+sl.length+'/4)',sl.length?sl.map(s=>{const st=aiSt(s);const ruim=st.at&&st.code!==200;if(st.code===401||st.code===403)prob.push('chave recusada na IA '+s.n+' ('+s.nome+')');
+    return ['IA '+s.n+' · '+escH(s.nome),!st.at?'ainda não usada':st.code===200?'ok · '+st.ms+' ms':aiWhy({status:st.code}),ruim?(st.code===429?'warn':'bad'):''];}):[['Nenhuma','configure em CONFIG','bad']]));
+  const row=[];
+  if(cloudOn()){let est='sem resposta',cls='bad';try{const ctrl=new AbortController();const to=setTimeout(()=>ctrl.abort(),8000);const r=await fetch(srvUrl()+'/',{signal:ctrl.signal});clearTimeout(to);const j=await r.json();if(j.ok&&j.kv&&j.senha){est='online';cls='';}else est='incompleto';}catch(e){}
+    if(cls)prob.push('servidor da nuvem '+est);const ct=parseInt(store.get('jv_cloud_t','0'))||0;row.push(['Servidor',est,cls],['Última sincronização',ct?new Date(ct).toLocaleString('pt-BR'):'nunca',ct?'':'warn']);}
+  else row.push(['Servidor','não configurado','warn']);
+  cards.push(cyCard('NUVEM',row));
+  if(nat){const pr=[];
+    try{const n=has('getNotifications')?NATIVE.getNotifications():null;pr.push(['Notificações',n===null?'indisponível':n?'liberado':'sem permissão',n?'':'warn']);if(n==='')prob.push('sem permissão de notificações');}catch(e){}
+    try{if(has('screenAvailable')){const a=NATIVE.screenAvailable();pr.push(['Acessibilidade (ler tela)',a?'ligada':'desligada',a?'':'warn']);}}catch(e){}
+    try{if(has('batteryOk')){const b=NATIVE.batteryOk();pr.push(['Rodar em segundo plano',b?'liberado':'restrito pela bateria',b?'':'warn']);if(!b)prob.push('economia de bateria pode fechar o Jarvis em segundo plano');}}catch(e){}
+    const mr=micReport();if(mr)pr.push(['Microfone',escH(mr.slice(0,60))]);
+    cards.push(cyCard('PERMISSÕES E SERVIÇOS',pr.length?pr:[['—','sem dados']]));}
+  let bytes=0;try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.indexOf('jv_')===0)bytes+=k.length+(localStorage.getItem(k)||'').length;}}catch(e){}
+  const kb=Math.round(bytes/1024);if(kb>3500)prob.push('memória local quase cheia');
+  cards.push(cyCard('MEMÓRIA E DADOS',[['Armazenamento usado',kb+' KB de ~5000',kb>3500?'bad':''],['Anotações',D.notes.length],['Memórias',D.memories.length],['Missões',(D.projects||[]).length],['Avaliações',(D.feedback||[]).length],['RAM do aparelho',(navigator.deviceMemory||'?')+' GB']]));
+  const rec=jsErrs.filter(e=>now-e.t<24*3600e3);
+  cards.push(cyCard('ERROS (24h)',rec.length?rec.slice(-5).map(e=>[new Date(e.t).toLocaleTimeString('pt-BR'),escH(e.m),'warn']):[['Nenhum erro registrado','ok']]));
+  cards.push(cyCard('RESULTADO',prob.length?prob.map(x=>['⚠',escH(x),'warn']):[['✔','tudo operacional']]));
+  const b=$('diagBody');if(b)b.innerHTML=cards.join('');
+  return prob;
+}
+async function openDiag(){$('cfg').classList.remove('open');$('diagBody').innerHTML='<p>Verificando sistemas…</p>';$('diag').classList.add('open');return await selfDiag();}
 function openDev(){$('cfg').classList.remove('open');$('dev').classList.add('open');}
 async function devRun(kind,code){
   const c=(code!=null?code:$('devIn').value).trim();
